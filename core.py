@@ -76,7 +76,7 @@ class ODirection(Enum):
 
 
 class OVertex(OElement):
-    def add_edge(self, to: 'OVertex'):
+    def add_edge(self, to: 'OVertex', edge_class: 'OEdge'):
         pass
 
     def get_edges(self, direction: ODirection) -> List['OEdge']:
@@ -92,3 +92,7 @@ class OEdge(OElement):
 
     def get_to(self) -> OVertex:
         pass
+
+
+class OGraph:
+    pass
