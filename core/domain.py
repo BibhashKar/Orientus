@@ -1,5 +1,8 @@
 from enum import Enum
 from typing import Any, List, Optional
+import threading
+
+orientus_conn_stack = threading.local()
 
 
 class ORID:
@@ -18,7 +21,10 @@ class ORID:
 
 class ORecord:
     def save(self):
-        pass
+        print('in save() method')
+        client = orientus_conn_stack.orient_client
+        print(client)
+        # get_database().save(self)
 
     def get_identity(self) -> ORID:
         pass
@@ -28,22 +34,6 @@ class ORecord:
 
 
 class OElement(ORecord):
-    def get_property(self, name: str) -> Any:
-        """
-
-        :param name: property name
-        :return:
-        """
-        pass
-
-    def set_property(self, name: str, value: Any):
-        """
-
-        :param name: property name
-        :param value: property value
-        :return:
-        """
-        pass
 
     def get_property_names(self) -> List[str]:
         pass
