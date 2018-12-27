@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import List, Optional
 
-from core.context import get_db
 
+# from . import OrientUsDB
 
 class ORID:
     PREFIX = '#'
@@ -18,15 +18,33 @@ class ORID:
         pass
 
 
+import core.db
+
+
 class ORecord:
-    def save(self):
-        return get_db().save(self)
+
+    @classmethod
+    def fetch(cls, rid: str):
+        return core.db.OrientUsDB.get_db().fetch(rid)
+
+    @classmethod
+    def query(cls, query: str):
+        return core.db.OrientUsDB.get_db().query(query)
 
     def get_identity(self) -> ORID:
         pass
 
+    def save(self):
+        return core.db.OrientUsDB.get_db().save(self)
+
+    def save_if_not_exists(self):
+        return core.db.OrientUsDB.get_db().save_if_not_exists(self)
+
+    def update(self):
+        return core.db.OrientUsDB.get_db().update(self)
+
     def delete(self):
-        pass
+        return core.db.OrientUsDB.get_db().delete(self)
 
 
 class OElement(ORecord):

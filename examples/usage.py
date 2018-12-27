@@ -37,3 +37,5 @@ if __name__ == '__main__':
 
         rec1 = File('demo.txt', 1500)
         rec1.save()
+
+        File.fetch(rid='')

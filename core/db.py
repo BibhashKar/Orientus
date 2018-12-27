@@ -2,8 +2,7 @@ from typing import List
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
-from core.context import OrientUsGlobals
-from core.domain import ORecord, OVertex
+from core.domain import OVertex
 
 
 class OrientUsSocket(OrientSocket):
@@ -33,13 +32,23 @@ class OrientUs(OrientDB):
 
 class OrientUsDB:
 
+    from core.domain import ORecord, OVertex, OEdge
+
+    import threading
+    thread_local = threading.local()
+
+    @classmethod
+    def get_db(cls) -> 'OrientUsDB':
+        return cls.thread_local.db
+
     def __init__(self, db_name: str, username: str, password: str, orient: OrientUs):
         self.db_name = db_name
         self.orient = orient
 
         self.orient.db_open(db_name, username, password)
 
-        OrientUsGlobals.db_thread_local.db = self
+        # ctx.OrientUsGlobals.db_thread_local.db: OrientUsDB = self
+        OrientUsDB.thread_local.db: OrientUsDB = self
 
     def save(self, record: ORecord):
         print('in %s' % OrientUsDB.save.__name__)
@@ -67,6 +76,24 @@ class OrientUsDB:
 
         print('rid', result[0]._rid)
         return result[0]._rid
+
+    def save_if_not_exists(self, record: ORecord):
+        pass
+
+    def fetch(self, rid: str) -> ORecord:
+        pass
+
+    def query(self, query: str, limit=-1) -> List[ORecord]:
+        pass
+
+    def update(self, record: ORecord) -> ORecord:
+        pass
+
+    def delete(self, record: ORecord) -> ORecord:
+        pass
+
+    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
+        pass
 
     def close(self):
         print('Closing %s' % self.db_name)
