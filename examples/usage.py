@@ -1,4 +1,4 @@
-from core.db import OrientUsDB
+from core.db import OrientUs
 from core.domain import OGraph, OVertex, OEdge, orientus_conn_stack
 
 
@@ -25,7 +25,7 @@ def sample():
 
 
 if __name__ == '__main__':
-    client = OrientUsDB('localhost', 2424)
+    client = OrientUs('localhost', 2424)
     client.connect('root', 'admin')
 
     orientus_conn_stack.orient_client = client

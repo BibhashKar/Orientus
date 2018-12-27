@@ -1,8 +1,7 @@
 from enum import Enum
-from typing import Any, List, Optional
-import threading
+from typing import List, Optional
 
-orientus_conn_stack = threading.local()
+from core.context import get_db
 
 
 class ORID:
@@ -21,10 +20,7 @@ class ORID:
 
 class ORecord:
     def save(self):
-        print('in save() method')
-        client = orientus_conn_stack.orient_client
-        print(client)
-        # get_database().save(self)
+        return get_db().save(self)
 
     def get_identity(self) -> ORID:
         pass
