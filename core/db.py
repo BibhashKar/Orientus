@@ -1,7 +1,9 @@
-from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization
+from typing import List
+
+from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
 from core.context import OrientUsGlobals
-from core.domain import ORecord
+from core.domain import ORecord, OVertex
 
 
 class OrientUsSocket(OrientSocket):
@@ -42,12 +44,17 @@ class OrientUsDB:
     def save(self, record: ORecord):
         print('in %s' % OrientUsDB.save.__name__)
 
-        clz_name = record.__class__.__name__
-        # print(clz_name)
+        is_vertex = isinstance(record, OVertex)
 
-        clz_create_cmd = 'create class %s if not exists extends V' % clz_name
+        clz_name = record.__class__.__name__
+
+        if is_vertex:
+            clz_create_cmd = 'create class %s if not exists extends V' % clz_name
+        else:
+            clz_create_cmd = 'create class %s if not exists' % clz_name
         print(clz_create_cmd)
-        print(self.orient.command(clz_create_cmd))
+
+        print('record class create:', self.orient.command(clz_create_cmd))
 
         values = []
         for field, value in record.__dict__.items():
@@ -56,7 +63,10 @@ class OrientUsDB:
 
         insert_cmd = "insert into %s set " % (clz_name) + ', '.join(values)
         print(insert_cmd)
-        self.orient.command(insert_cmd)
+        result: List[OrientRecord] = self.orient.command(insert_cmd)
+
+        print('rid', result[0]._rid)
+        return result[0]._rid
 
     def close(self):
         print('Closing %s' % self.db_name)

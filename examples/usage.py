@@ -1,11 +1,17 @@
-from core.db import OrientUs
-from core.domain import OGraph, OVertex, OEdge, orientus_conn_stack
+from core.app import init_db
+from core.domain import OGraph, OVertex, OEdge, ORecord
 
 
 class Animal(OVertex):
     def __init__(self, kind, name):
         self.kind = kind
         self.name = name
+
+
+class File(ORecord):
+    def __init__(self, filename, size):
+        self.filename = filename
+        self.size = size
 
 
 class FriendShip(OEdge):
@@ -25,19 +31,9 @@ def sample():
 
 
 if __name__ == '__main__':
-    client = OrientUs('localhost', 2424)
-    client.connect('root', 'admin')
+    with init_db('localhost', 2424, 'knowledge', 'root', 'admin') as db:
+        # v1 = Animal('Deer', 'Chapila')
+        # print(v1.save())
 
-    orientus_conn_stack.orient_client = client
-
-    v1 = Animal('Deer', 'Chapila')
-    v1.save()
-
-    # client.db_open('knowledge', 'root', 'admin')
-
-    # res = client.command('create class Animal extends V')
-    # pprint(res)
-    # client.command("insert into Food set name = 'pea', color = 'green'")
-    # pprint(client.query('select from Sentence'))
-
-    client.close()
+        rec1 = File('demo.txt', 1500)
+        rec1.save()
