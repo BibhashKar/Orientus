@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
@@ -31,7 +31,6 @@ class OrientUs(OrientDB):
 
 
 class OrientUsDB:
-
     from core.domain import ORecord, OVertex, OEdge
 
     import threading
@@ -50,7 +49,7 @@ class OrientUsDB:
         # ctx.OrientUsGlobals.db_thread_local.db: OrientUsDB = self
         OrientUsDB.thread_local.db: OrientUsDB = self
 
-    def save(self, record: ORecord):
+    def save(self, record: ORecord) -> str:
         print('in %s' % OrientUsDB.save.__name__)
 
         is_vertex = isinstance(record, OVertex)
@@ -65,26 +64,30 @@ class OrientUsDB:
 
         print('record class create:', self.orient.command(clz_create_cmd))
 
-        values = []
-        for field, value in record.__dict__.items():
-            modified_val = "'%s'" % value if type(value) == str else value
-            values.append("%s = %s" % (field, modified_val))
-
-        insert_cmd = "insert into %s set " % (clz_name) + ', '.join(values)
+        insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
         print(insert_cmd)
         result: List[OrientRecord] = self.orient.command(insert_cmd)
 
         print('rid', result[0]._rid)
         return result[0]._rid
 
-    def save_if_not_exists(self, record: ORecord):
-        pass
+    def save_if_not_exists(self, record: ORecord) -> Optional[str]:
+        query = "select from %s where %s" % (record.class_name(), self._fields_to_str(record, delimiter='AND'))
+        print(query)
+
+        results = self.query(query)
+        print(len(results))
+
+        if len(results) > 0:
+            return None
+        else:
+            return self.save(record)
 
     def fetch(self, rid: str) -> ORecord:
         pass
 
     def query(self, query: str, limit=-1) -> List[ORecord]:
-        pass
+        return self.orient.command(query)
 
     def update(self, record: ORecord) -> ORecord:
         pass
@@ -94,6 +97,13 @@ class OrientUsDB:
 
     def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
         pass
+
+    def _fields_to_str(self, record, delimiter=',') -> str:
+        values = []
+        for field, value in record.__dict__.items():
+            modified_val = "'%s'" % value if type(value) == str else value
+            values.append("%s = %s" % (field, modified_val))
+        return (' %s ' % delimiter).join(values)
 
     def close(self):
         print('Closing %s' % self.db_name)

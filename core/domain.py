@@ -31,6 +31,9 @@ class ORecord:
     def query(cls, query: str):
         return core.db.OrientUsDB.get_db().query(query)
 
+    def class_name(self) -> str:
+        return self.__class__.__name__
+
     def get_identity(self) -> ORID:
         pass
 

@@ -36,6 +36,6 @@ if __name__ == '__main__':
         # print(v1.save())
 
         rec1 = File('demo.txt', 1500)
-        rec1.save()
+        print(rec1.save_if_not_exists())
 
-        File.fetch(rid='')
+        # File.fetch(rid='')
