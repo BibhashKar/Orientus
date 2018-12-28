@@ -1,4 +1,4 @@
-from typing import ClassVar, List, Optional, Dict
+from typing import ClassVar, List, Optional
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
@@ -48,6 +48,9 @@ class OrientUsDB:
 
         # ctx.OrientUsGlobals.db_thread_local.db: OrientUsDB = self
         OrientUsDB.thread_local.db: OrientUsDB = self
+
+        print("-- Initializing '%s' orientus database --" % (self.db_name))
+        print()
 
     def save(self, record: ORecord) -> str:
         print('in %s' % OrientUsDB.save.__name__)
@@ -132,6 +135,6 @@ class OrientUsDB:
 
     def close(self):
         print()
-        print('-- Closing %s database --' % self.db_name)
+        print("-- Closing '%s' orientus database --" % self.db_name)
 
         self.orient.close()
