@@ -23,19 +23,19 @@ import core.db
 
 class ORecord:
 
-    @classmethod
-    def fetch(cls, rid: str):
-        return core.db.OrientUsDB.get_db().fetch(rid)
-
-    @classmethod
-    def query(cls, query: str):
-        return core.db.OrientUsDB.get_db().query(query)
-
     def class_name(self) -> str:
         return self.__class__.__name__
 
     def get_identity(self) -> ORID:
         pass
+
+    @classmethod
+    def fetch(cls, rid: str):
+        return core.db.OrientUsDB.get_db().fetch(cls.__name__, rid)
+
+    @classmethod
+    def query(cls, query: str):
+        return core.db.OrientUsDB.get_db().query(query)
 
     def save(self):
         return core.db.OrientUsDB.get_db().save(self)

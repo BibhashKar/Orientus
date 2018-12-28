@@ -73,21 +73,31 @@ class OrientUsDB:
 
     def save_if_not_exists(self, record: ORecord) -> Optional[str]:
         query = "select from %s where %s" % (record.class_name(), self._fields_to_str(record, delimiter='AND'))
-        print(query)
 
         results = self.query(query)
-        print(len(results))
 
         if len(results) > 0:
             return None
         else:
             return self.save(record)
 
-    def fetch(self, rid: str) -> ORecord:
-        pass
+    def fetch(self, class_name, rid: str) -> Optional[ORecord]:
+        query = "select from %s where @rid = '%s'" % (class_name, rid)
+
+        results = self.query(query)
+
+        if len(results) > 0:
+            return results[0]
+        else:
+            return None
 
     def query(self, query: str, limit=-1) -> List[ORecord]:
-        return self.orient.command(query)
+        print('Query:', query)
+
+        results = self.orient.command(query)
+        print('Results size:', len(results))
+
+        return results
 
     def update(self, record: ORecord) -> ORecord:
         pass
@@ -106,5 +116,5 @@ class OrientUsDB:
         return (' %s ' % delimiter).join(values)
 
     def close(self):
-        print('Closing %s' % self.db_name)
+        print('-- Closing %s database --' % self.db_name)
         self.orient.close()

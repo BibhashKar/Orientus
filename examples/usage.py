@@ -38,4 +38,6 @@ if __name__ == '__main__':
         rec1 = File('demo.txt', 1500)
         print(rec1.save_if_not_exists())
 
+        File.fetch('#73:0')
+
         # File.fetch(rid='')
