@@ -1,3 +1,7 @@
+from typing import Dict, ClassVar
+
+from pyorient import OrientRecord
+
 from core.app import init_db
 from core.domain import OGraph, OVertex, OEdge, ORecord
 
@@ -30,6 +34,14 @@ def sample():
         v1.add_edge(v2, e1).save()
 
 
+def data_to_ORecord(data: OrientRecord, cls: ClassVar):
+    obj: cls = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
+    obj._rid = data._rid
+    obj._version = data._version
+
+    return obj
+
+
 if __name__ == '__main__':
     with init_db('localhost', 2424, 'knowledge', 'root', 'admin') as db:
         # v1 = Animal('Deer', 'Chapila')
@@ -39,7 +51,9 @@ if __name__ == '__main__':
         # print(rec1.save_if_not_exists())
 
         file = File.fetch('#73:0')
-        print(file)
+        # print(file)
+        ans = data_to_ORecord(file, File)
+        print(ans.__dict__)
 
         # file.size = 2010
         # file.update()

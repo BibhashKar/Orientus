@@ -2,7 +2,7 @@ from typing import ClassVar, List, Optional
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
-from core.domain import OVertex
+from core.domain import OVertex, OEdge
 
 
 class OrientUsSocket(OrientSocket):
@@ -65,11 +65,11 @@ class OrientUsDB:
             clz_create_cmd = 'create class %s if not exists' % clz_name
         print(clz_create_cmd)
 
-        print('record class create:', self.orient.command(clz_create_cmd))
+        print('record class create:', self.command(clz_create_cmd))
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
         print(insert_cmd)
-        result: List[OrientRecord] = self.orient.command(insert_cmd)
+        result = self.command(insert_cmd)
 
         print('rid', result[0]._rid)
         return result[0]._rid
@@ -87,6 +87,8 @@ class OrientUsDB:
         else:
             return self.save(record)
 
+    # TODO: add mapper for objects??
+
     def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
         query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
 
@@ -97,13 +99,13 @@ class OrientUsDB:
         else:
             return None
 
-    def query(self, query: str, limit: int = -1) -> List[ORecord]:
+    def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
         if limit > -1 and not ' limit ' in query:
             query = '%s limit %s' % (query, limit)
 
         print('Query:', query)
 
-        results = self.orient.command(query)
+        results = self.command(query)
         print('Results size:', len(results))
 
         return results
@@ -116,15 +118,25 @@ class OrientUsDB:
         )
         print(update_cmd)
 
-        result: List[OrientRecord] = self.orient.command(update_cmd)
+        results = self.command(update_cmd)
 
-        return result[0] if result is not None else None
+        return results[0] if results is not None else None
 
-    def delete(self, record: ORecord) -> ORecord:
-        pass
+    def delete(self, record: ORecord) -> bool:
+        if isinstance(record, OVertex):
+            delete_cmd = "delete vertex %s" % record._rid
+        elif isinstance(record, OEdge):
+            delete_cmd = "delete edge %s" % record._rid
+        else:
+            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record._rid)
+
+        print(delete_cmd)
 
     def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
         pass
+
+    def command(self, str) -> List[OrientRecord]:
+        return self.orient.command(str)
 
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
@@ -132,6 +144,13 @@ class OrientUsDB:
             modified_val = "'%s'" % value if type(value) == str else value
             values.append("%s = %s" % (field, modified_val))
         return (' %s ' % delimiter).join(values)
+
+    def _data_to_ORecord(data: OrientRecord, cls: ClassVar) -> ORecord:
+        obj: cls = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
+        obj._rid = data._rid
+        obj._version = data._version
+
+        return obj
 
     def close(self):
         print()
