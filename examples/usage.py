@@ -35,9 +35,15 @@ if __name__ == '__main__':
         # v1 = Animal('Deer', 'Chapila')
         # print(v1.save())
 
-        rec1 = File('demo.txt', 1500)
-        print(rec1.save_if_not_exists())
+        # rec1 = File('demo.txt', 1500)
+        # print(rec1.save_if_not_exists())
 
-        File.fetch('#73:0')
+        file = File.fetch('#73:0')
+        print(file)
+
+        # file.size = 2010
+        # file.update()
 
         # File.fetch(rid='')
+    # f = globals()[File.__name__]
+    # print(f())

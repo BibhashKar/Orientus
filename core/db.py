@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import ClassVar, List, Optional, Dict
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
@@ -72,7 +72,10 @@ class OrientUsDB:
         return result[0]._rid
 
     def save_if_not_exists(self, record: ORecord) -> Optional[str]:
-        query = "select from %s where %s" % (record.class_name(), self._fields_to_str(record, delimiter='AND'))
+        query = "select from %s where %s" % (
+            record.class_name(),
+            self._fields_to_str(record, delimiter='AND')
+        )
 
         results = self.query(query)
 
@@ -81,8 +84,8 @@ class OrientUsDB:
         else:
             return self.save(record)
 
-    def fetch(self, class_name, rid: str) -> Optional[ORecord]:
-        query = "select from %s where @rid = '%s'" % (class_name, rid)
+    def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
+        query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
 
         results = self.query(query)
 
@@ -91,7 +94,10 @@ class OrientUsDB:
         else:
             return None
 
-    def query(self, query: str, limit=-1) -> List[ORecord]:
+    def query(self, query: str, limit: int = -1) -> List[ORecord]:
+        if limit > -1 and not ' limit ' in query:
+            query = '%s limit %s' % (query, limit)
+
         print('Query:', query)
 
         results = self.orient.command(query)
@@ -99,8 +105,17 @@ class OrientUsDB:
 
         return results
 
-    def update(self, record: ORecord) -> ORecord:
-        pass
+    def update(self, record: ORecord) -> Optional[OrientRecord]:
+        update_cmd = "update %s set %s where @rid = '%s'" % (
+            record.class_name(),
+            self._fields_to_str(record),
+            record._rid
+        )
+        print(update_cmd)
+
+        result: List[OrientRecord] = self.orient.command(update_cmd)
+
+        return result[0] if result is not None else None
 
     def delete(self, record: ORecord) -> ORecord:
         pass
@@ -116,5 +131,7 @@ class OrientUsDB:
         return (' %s ' % delimiter).join(values)
 
     def close(self):
+        print()
         print('-- Closing %s database --' % self.db_name)
+
         self.orient.close()

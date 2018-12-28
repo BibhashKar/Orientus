@@ -3,6 +3,8 @@ from typing import List, Optional
 
 
 # from . import OrientUsDB
+from pyorient import OrientRecord
+
 
 class ORID:
     PREFIX = '#'
@@ -21,7 +23,7 @@ class ORID:
 import core.db
 
 
-class ORecord:
+class ORecord(OrientRecord):
 
     def class_name(self) -> str:
         return self.__class__.__name__
@@ -31,7 +33,7 @@ class ORecord:
 
     @classmethod
     def fetch(cls, rid: str):
-        return core.db.OrientUsDB.get_db().fetch(cls.__name__, rid)
+        return core.db.OrientUsDB.get_db().fetch(cls, rid)
 
     @classmethod
     def query(cls, query: str):
