@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import List, Optional
 
-
 # from . import OrientUsDB
 from pyorient import OrientRecord
 
@@ -23,7 +22,11 @@ class ORID:
 import core.db
 
 
-class ORecord(OrientRecord):
+class ORecord:
+
+    def __init__(self, rid='', version=''):
+        self.rid = rid
+        self.version = version
 
     def class_name(self) -> str:
         return self.__class__.__name__

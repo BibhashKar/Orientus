@@ -87,7 +87,7 @@ class OrientUsDB:
         else:
             return self.save(record)
 
-    def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
+    def fetch(self, cls: ClassVar, rid: str) -> OrientRecord:
         query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
 
         results = self.query(query)
@@ -108,27 +108,32 @@ class OrientUsDB:
 
         return results
 
-    def update(self, record: ORecord) -> str:
+    def update(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),
-            record._rid
+            record.rid
         )
         print(update_cmd)
 
         results = self.command(update_cmd)
+        print(results)
 
-        return results[0]._rid
+        return len(results) == 1
 
     def delete(self, record: ORecord) -> bool:
         if isinstance(record, OVertex):
-            delete_cmd = "delete vertex %s" % record._rid
+            delete_cmd = "delete vertex %s" % record.rid
         elif isinstance(record, OEdge):
-            delete_cmd = "delete edge %s" % record._rid
+            delete_cmd = "delete edge %s" % record.rid
         else:
-            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record._rid)
+            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record.rid)
 
         print(delete_cmd)
+
+        results = self.command(delete_cmd)
+
+        return len(results) == 1
 
     def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
         pass
@@ -143,8 +148,8 @@ class OrientUsDB:
             values.append("%s = %s" % (field, modified_val))
         return (' %s ' % delimiter).join(values)
 
-    def _data_to_ORecord(data: OrientRecord, cls: ClassVar) -> ORecord:
-        obj: cls = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
+    def _data_to_ORecord(self, data: OrientRecord, cls) -> ORecord:
+        obj = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
         obj._rid = data._rid
         obj._version = data._version
 
