@@ -51,12 +51,12 @@ if __name__ == '__main__':
         # print(rec1.save_if_not_exists())
 
         file = File.fetch('#73:0')
-        # print(file)
-        ans = data_to_ORecord(file, File)
-        print(ans.__dict__)
+        print(file)
+        # ans = data_to_ORecord(file, File)
+        # print(ans.__dict__)
 
-        # file.size = 2010
-        # file.update()
+        file.size = 2010
+        file.update()
 
         # File.fetch(rid='')
     # f = globals()[File.__name__]

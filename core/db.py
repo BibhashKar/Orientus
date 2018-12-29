@@ -87,8 +87,6 @@ class OrientUsDB:
         else:
             return self.save(record)
 
-    # TODO: add mapper for objects??
-
     def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
         query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
 
@@ -110,7 +108,7 @@ class OrientUsDB:
 
         return results
 
-    def update(self, record: ORecord) -> Optional[OrientRecord]:
+    def update(self, record: ORecord) -> str:
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),
@@ -120,7 +118,7 @@ class OrientUsDB:
 
         results = self.command(update_cmd)
 
-        return results[0] if results is not None else None
+        return results[0]._rid
 
     def delete(self, record: ORecord) -> bool:
         if isinstance(record, OVertex):
