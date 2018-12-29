@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import List, Optional
 
+
 # from . import OrientUsDB
-from pyorient import OrientRecord
 
 
 class ORID:
@@ -27,6 +27,18 @@ class ORecord:
     def __init__(self, rid='', version=''):
         self.rid = rid
         self.version = version
+
+    # TODO: think about this method
+    def has_valid_rid(self):
+        if self.rid is None: return False
+        if self.rid.strip() == '': return False
+
+        cluster, position = self.rid.split('#')
+
+        if not cluster.strip(): return False
+        if not position.strip(): return False
+
+        return int(cluster) > 0 and int(position) >= 0
 
     def class_name(self) -> str:
         return self.__class__.__name__
@@ -88,9 +100,6 @@ class ODirection(Enum):
 
 
 class OVertex(OElement):
-    def add_edge(self, to: 'OVertex', edge_class: 'OEdge'):
-        pass
-
     def get_edges(self, direction: ODirection) -> List['OEdge']:
         pass
 
@@ -99,6 +108,9 @@ class OVertex(OElement):
 
 
 class OEdge(OElement):
+    def connect(self, frm: OVertex, to: OVertex):
+        return core.db.OrientUsDB.get_db().add_edge(frm, to, self)
+
     def get_from(self) -> OVertex:
         pass
 

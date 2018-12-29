@@ -1,4 +1,4 @@
-from typing import Dict, ClassVar
+from typing import ClassVar
 
 from pyorient import OrientRecord
 
@@ -14,8 +14,22 @@ class Animal(OVertex):
 
 class File(ORecord):
     def __init__(self, filename, size):
+        super().__init__()
+
         self.filename = filename
         self.size = size
+
+
+class Person(OVertex):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+
+class Related(OEdge):
+    def __init__(self):
+        super().__init__()
+        self.relation_type = 'love'
 
 
 class FriendShip(OEdge):
@@ -52,7 +66,11 @@ def to_File(data: OrientRecord):
     return f
 
 
+
 if __name__ == '__main__':
+    # r1 = ORecord(rid='42 #0 ')
+    # print(r1.has_valid_rid())
+
     with init_db('localhost', 2424, 'knowledge', 'root', 'admin') as db:
         # v1 = Animal('Deer', 'Chapila')
         # print(v1.save())
@@ -62,8 +80,8 @@ if __name__ == '__main__':
         # print(rec1.save_if_not_exists())
 
         # file = File.fetch('#73:0')
-        f = to_File(db.fetch(File, '#73:0'))
-        print(vars(f))
+        # f = to_File(db.fetch(File, '#73:0'))
+        # print(vars(f))
 
         # results = db.command("select from file where @rid='#73:0'")
         # result = results[0]
@@ -77,5 +95,13 @@ if __name__ == '__main__':
         # f.update()
 
         # File.fetch(rid='')
-
         # f.delete()
+
+        p1 = Person('John')
+        p1.rid = '#83:0'
+
+        p2 = Person('Marie')
+        p2.rid = '#84:0'
+
+        related = Related()
+        print(related.connect(p1, p2))

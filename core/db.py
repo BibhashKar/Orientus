@@ -2,7 +2,8 @@ from typing import ClassVar, List, Optional
 
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
-from core.domain import OVertex, OEdge
+
+# from core.domain import OVertex, OEdge
 
 
 class OrientUsSocket(OrientSocket):
@@ -31,7 +32,8 @@ class OrientUs(OrientDB):
 
 
 class OrientUsDB:
-    from core.domain import ORecord, OVertex, OEdge
+    from core.domain import ORecord
+    from core.domain import OVertex, OEdge
 
     import threading
     thread_local = threading.local()
@@ -121,6 +123,8 @@ class OrientUsDB:
 
         return len(results) == 1
 
+    # from core.domain import OVertex, OEdge
+
     def delete(self, record: ORecord) -> bool:
         if isinstance(record, OVertex):
             delete_cmd = "delete vertex %s" % record.rid
@@ -135,8 +139,20 @@ class OrientUsDB:
 
         return len(results) == 1
 
-    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
-        pass
+    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> str:
+        assert bool(frm.rid)
+        assert bool(to.rid)
+
+        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm.rid, to.rid)
+        value_str = self._fields_to_str(edge)
+        if value_str:
+            create_cmd += ' set ' + value_str
+
+        print(create_cmd)
+
+        results = self.command(create_cmd)
+
+        return results[0]._rid
 
     def command(self, str) -> List[OrientRecord]:
         return self.orient.command(str)
@@ -144,6 +160,8 @@ class OrientUsDB:
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
         for field, value in record.__dict__.items():
+            if field in ['rid', 'version']:
+                continue
             modified_val = "'%s'" % value if type(value) == str else value
             values.append("%s = %s" % (field, modified_val))
         return (' %s ' % delimiter).join(values)
