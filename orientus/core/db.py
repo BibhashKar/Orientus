@@ -30,8 +30,8 @@ class OrientUs(OrientDB):
 
 
 class OrientUsDB:
-    from core.domain import ORecord
-    from core.domain import OVertex, OEdge
+    from orientus.core.domain import ORecord
+    from orientus.core.domain import OVertex, OEdge
 
     import threading
     thread_local = threading.local()
@@ -56,7 +56,7 @@ class OrientUsDB:
 
         clz_name = record.__class__.__name__
 
-        from core.domain import OVertex, OEdge
+        from orientus.core.domain import OVertex, OEdge
 
         if isinstance(record, OEdge):
             return self.add_edge(record._from_vertex, record._to_vertex, record)

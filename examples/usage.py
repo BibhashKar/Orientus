@@ -2,8 +2,8 @@ from typing import ClassVar
 
 from pyorient import OrientRecord
 
-from core.app import init_db
-from core.domain import OGraph, OVertex, OEdge, ORecord
+from orientus.core.app import init_db
+from orientus.core.domain import OGraph, OVertex, OEdge, ORecord
 
 
 class Animal(OVertex):

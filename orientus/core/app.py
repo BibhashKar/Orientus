@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from core.db import OrientUs, OrientUsDB
+from orientus.core import OrientUs, OrientUsDB
 
 
 @contextmanager
