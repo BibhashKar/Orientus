@@ -1,7 +1,11 @@
+import threading
 from typing import ClassVar, List
 
 import pyorient
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
+
+from orientus.core.domain import ORecord
+from orientus.core.domain import OVertex, OEdge
 
 
 class OrientUsSocket(OrientSocket):
@@ -30,10 +34,6 @@ class OrientUs(OrientDB):
 
 
 class OrientUsDB:
-    from orientus.core.domain import ORecord
-    from orientus.core.domain import OVertex, OEdge
-
-    import threading
     thread_local = threading.local()
 
     @classmethod
@@ -50,6 +50,9 @@ class OrientUsDB:
 
         print("-- Initializing '%s' orientus database --" % (self.db_name))
         print()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def save(self, record: ORecord) -> str:
         print('in %s' % OrientUsDB.save.__name__)

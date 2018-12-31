@@ -2,9 +2,6 @@ from enum import Enum
 from typing import List, Optional
 
 
-# from . import OrientUsDB
-
-
 class ORID:
     PREFIX = '#'
     SEPARATOR = ':'
@@ -42,26 +39,6 @@ class ORecord:
 
     def get_identity(self) -> ORID:
         pass
-
-    @classmethod
-    def fetch(cls, rid: str):
-        return orientus.core.db.OrientUsDB.get_db().fetch(cls, rid)
-
-    @classmethod
-    def query(cls, query: str):
-        return orientus.core.db.OrientUsDB.get_db().query(query)
-
-    def save(self) -> str:
-        return orientus.core.db.OrientUsDB.get_db().save(self)
-
-    def save_if_not_exists(self):
-        return orientus.core.db.OrientUsDB.get_db().save_if_not_exists(self)
-
-    def update(self):
-        return orientus.core.db.OrientUsDB.get_db().update(self)
-
-    def delete(self):
-        return orientus.core.db.OrientUsDB.get_db().delete(self)
 
 
 class OElement(ORecord):

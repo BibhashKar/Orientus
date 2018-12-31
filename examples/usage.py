@@ -8,6 +8,7 @@ from orientus.core.domain import OGraph, OVertex, OEdge, ORecord
 
 class Animal(OVertex):
     def __init__(self, kind, name):
+        super().__init__()
         self.kind = kind
         self.name = name
 
