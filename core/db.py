@@ -1,11 +1,7 @@
-from typing import ClassVar, List, Optional
+from typing import ClassVar, List
 
 import pyorient
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
-
-
-# from core.domain import OVertex, OEdge
-# from core.domain import OEdge
 
 
 class OrientUsSocket(OrientSocket):
@@ -50,7 +46,6 @@ class OrientUsDB:
 
         self.orient.db_open(db_name, username, password)
 
-        # ctx.OrientUsGlobals.db_thread_local.db: OrientUsDB = self
         OrientUsDB.thread_local.db: OrientUsDB = self
 
         print("-- Initializing '%s' orientus database --" % (self.db_name))
@@ -132,8 +127,6 @@ class OrientUsDB:
 
         return len(results) == 1
 
-    # from core.domain import OVertex, OEdge
-
     def delete(self, record: ORecord) -> bool:
         if isinstance(record, OVertex):
             delete_cmd = "delete vertex %s" % record._rid
@@ -174,7 +167,8 @@ class OrientUsDB:
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
         for field, value in record.__dict__.items():
-            if field in ['_rid', '_version', '_from_vertex', '_to_vertex']:  # TODO: business domain object can have these field name?
+            if field in ['_rid', '_version', '_from_vertex',
+                         '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
             modified_val = "'%s'" % value if type(value) == str else value
             values.append("%s = %s" % (field, modified_val))
