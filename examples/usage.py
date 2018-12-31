@@ -61,8 +61,8 @@ def data_to_ORecord(cls: ClassVar):
 def to_File(data: OrientRecord):
     values = data.__dict__['_OrientRecord__o_storage']
     f = File(values['filename'], values['size'])
-    f.rid = data._rid
-    f.version = data._version
+    f._rid = data._rid
+    f._version = data._version
     return f
 
 
@@ -98,10 +98,10 @@ if __name__ == '__main__':
         # f.delete()
 
         p1 = Person('John')
-        p1.rid = '#83:0'
+        p1._rid = '#83:0'
 
         p2 = Person('Marie')
-        p2.rid = '#84:0'
+        p2._rid = '#84:0'
 
         related = Related()
         print(related.connect(p1, p2))

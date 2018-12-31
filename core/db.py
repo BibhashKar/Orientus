@@ -1,9 +1,11 @@
 from typing import ClassVar, List, Optional
 
+import pyorient
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization, OrientRecord
 
 
 # from core.domain import OVertex, OEdge
+# from core.domain import OEdge
 
 
 class OrientUsSocket(OrientSocket):
@@ -57,11 +59,14 @@ class OrientUsDB:
     def save(self, record: ORecord) -> str:
         print('in %s' % OrientUsDB.save.__name__)
 
-        is_vertex = isinstance(record, OVertex)
-
         clz_name = record.__class__.__name__
 
-        if is_vertex:
+        from core.domain import OVertex, OEdge
+
+        if isinstance(record, OEdge):
+            return self.add_edge(record._from_vertex, record._to_vertex, record)
+
+        if isinstance(record, OVertex):
             clz_create_cmd = 'create class %s if not exists extends V' % clz_name
         else:
             clz_create_cmd = 'create class %s if not exists' % clz_name
@@ -73,10 +78,12 @@ class OrientUsDB:
         print(insert_cmd)
         result = self.command(insert_cmd)
 
+        record._rid = result[0]._rid
         print('rid', result[0]._rid)
+
         return result[0]._rid
 
-    def save_if_not_exists(self, record: ORecord) -> Optional[str]:
+    def save_if_not_exists(self, record: ORecord) -> str:
         query = "select from %s where %s" % (
             record.class_name(),
             self._fields_to_str(record, delimiter='AND')
@@ -85,7 +92,9 @@ class OrientUsDB:
         results = self.query(query)
 
         if len(results) > 0:
-            return None
+            record._rid = results[0]._rid
+            record._version = results[0]._version
+            return record._rid
         else:
             return self.save(record)
 
@@ -114,7 +123,7 @@ class OrientUsDB:
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),
-            record.rid
+            record._rid
         )
         print(update_cmd)
 
@@ -127,11 +136,11 @@ class OrientUsDB:
 
     def delete(self, record: ORecord) -> bool:
         if isinstance(record, OVertex):
-            delete_cmd = "delete vertex %s" % record.rid
+            delete_cmd = "delete vertex %s" % record._rid
         elif isinstance(record, OEdge):
-            delete_cmd = "delete edge %s" % record.rid
+            delete_cmd = "delete edge %s" % record._rid
         else:
-            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record.rid)
+            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record._rid)
 
         print(delete_cmd)
 
@@ -140,10 +149,10 @@ class OrientUsDB:
         return len(results) == 1
 
     def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> str:
-        assert bool(frm.rid)
-        assert bool(to.rid)
+        assert bool(frm._rid)
+        assert bool(to._rid)
 
-        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm.rid, to.rid)
+        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm._rid, to._rid)
         value_str = self._fields_to_str(edge)
         if value_str:
             create_cmd += ' set ' + value_str
@@ -155,12 +164,17 @@ class OrientUsDB:
         return results[0]._rid
 
     def command(self, str) -> List[OrientRecord]:
-        return self.orient.command(str)
+        try:
+            results = self.orient.command(str)
+        except pyorient.PyOrientCommandException as pyoe:
+            return []
+
+        return results
 
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
         for field, value in record.__dict__.items():
-            if field in ['rid', 'version']:
+            if field in ['_rid', '_version', '_from_vertex', '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
             modified_val = "'%s'" % value if type(value) == str else value
             values.append("%s = %s" % (field, modified_val))

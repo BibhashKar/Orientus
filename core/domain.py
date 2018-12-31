@@ -25,15 +25,15 @@ import core.db
 class ORecord:
 
     def __init__(self, rid='', version=''):
-        self.rid = rid
-        self.version = version
+        self._rid = rid
+        self._version = version
 
     # TODO: think about this method
     def has_valid_rid(self):
-        if self.rid is None: return False
-        if self.rid.strip() == '': return False
+        if self._rid is None: return False
+        if self._rid.strip() == '': return False
 
-        cluster, position = self.rid.split('#')
+        cluster, position = self._rid.split('#')
 
         if not cluster.strip(): return False
         if not position.strip(): return False
@@ -54,7 +54,7 @@ class ORecord:
     def query(cls, query: str):
         return core.db.OrientUsDB.get_db().query(query)
 
-    def save(self):
+    def save(self) -> str:
         return core.db.OrientUsDB.get_db().save(self)
 
     def save_if_not_exists(self):
@@ -108,8 +108,15 @@ class OVertex(OElement):
 
 
 class OEdge(OElement):
+
+    def __init__(self):
+        super().__init__()
+        self._from_vertex: OVertex = None
+        self._to_vertex: OVertex = None
+
     def connect(self, frm: OVertex, to: OVertex):
-        return core.db.OrientUsDB.get_db().add_edge(frm, to, self)
+        self._from_vertex = frm
+        self._to_vertex = to
 
     def get_from(self) -> OVertex:
         pass
