@@ -1,4 +1,3 @@
-import threading
 import time
 from collections import deque
 from threading import Thread
@@ -32,15 +31,9 @@ class OrientUs(OrientDB):
 
 
 class OrientUsDB(Thread):
-    # th_local = threading.local()
 
-    db = None
-
-    @classmethod
-    def get_db(cls):
-        return cls.db
-
-    def __init__(self, host: str, port: int, db_name: str, username: str, password: str):
+    def __init__(self, db_name: str, username: str, password: str,
+                 host: str = 'localhost', port: int = 2424, ):
         super().__init__()
 
         self.host = host
