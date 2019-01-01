@@ -75,7 +75,7 @@ class Session:
             return None
 
     def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
-        if limit > -1 and not ' limit ' in query:
+        if limit > -1 and ' limit ' not in query:
             query = '%s limit %s' % (query, limit)
 
         if self.debug: print('Query:', query)
