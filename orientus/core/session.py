@@ -1,7 +1,6 @@
 from typing import ClassVar, List
 
-import pyorient
-from pyorient import OrientRecord
+from pyorient import OrientRecord, PyOrientCommandException
 
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
@@ -131,7 +130,7 @@ class Session:
     def command(self, str) -> List[OrientRecord]:
         try:
             results = self.connection.command(str)
-        except pyorient.PyOrientCommandException as pyoe:
+        except PyOrientCommandException:
             return []
 
         return results
