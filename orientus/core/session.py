@@ -9,8 +9,9 @@ from orientus.core.domain import ORecord, OVertex, OEdge
 
 class Session:
 
-    def __init__(self, db):
+    def __init__(self, db: OrientUsDB):
         self.db = db
+        self.debug = db.debug
 
     def __enter__(self):
         self.connection = self.db.acquire_connection()
@@ -20,7 +21,8 @@ class Session:
         self.db.release_connection(self.connection)
 
     def save(self, record: ORecord) -> str:
-        # print('in %s' % self.save.__name__)
+        if self.debug:
+            print('in %s' % self.save.__name__)
 
         clz_name = record.__class__.__name__
 
@@ -33,16 +35,18 @@ class Session:
             clz_create_cmd = 'create class %s if not exists extends V' % clz_name
         else:
             clz_create_cmd = 'create class %s if not exists' % clz_name
-        print(clz_create_cmd)
 
-        print('record class create:', self.command(clz_create_cmd))
+        if self.debug:
+            print(clz_create_cmd)
+            print('record class create:', self.command(clz_create_cmd))
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
-        print(insert_cmd)
+        if self.debug: print(insert_cmd)
+
         result = self.command(insert_cmd)
 
         record._rid = result[0]._rid
-        print('rid', result[0]._rid)
+        if self.debug: print('rid', result[0]._rid)
 
         return result[0]._rid
 
@@ -75,10 +79,10 @@ class Session:
         if limit > -1 and not ' limit ' in query:
             query = '%s limit %s' % (query, limit)
 
-        print('Query:', query)
+        if self.debug: print('Query:', query)
 
         results = self.command(query)
-        print('Results size:', len(results))
+        if self.debug: print('Results size:', len(results))
 
         return results
 
@@ -88,10 +92,10 @@ class Session:
             self._fields_to_str(record),
             record._rid
         )
-        print(update_cmd)
+        if self.debug: print(update_cmd)
 
         results = self.command(update_cmd)
-        print(results)
+        if self.debug: print(results)
 
         return len(results) == 1
 
@@ -103,7 +107,7 @@ class Session:
         else:
             delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record._rid)
 
-        print(delete_cmd)
+        if self.debug: print(delete_cmd)
 
         results = self.command(delete_cmd)
 
@@ -118,7 +122,7 @@ class Session:
         if value_str:
             create_cmd += ' set ' + value_str
 
-        print(create_cmd)
+        if self.debug: print(create_cmd)
 
         results = self.command(create_cmd)
 

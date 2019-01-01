@@ -60,18 +60,17 @@ def to_File(data: OrientRecord):
 
 
 if __name__ == '__main__':
-    with OrientUsDB('localhost', 2424, 'test', 'root', 'admin') as db:
-    # print('db running', database.keep_running)
+    with OrientUsDB('test', 'root', 'admin') as db:
+        # print('db running', database.keep_running)
 
-    # with Session() as session:
-    #     print('in session')
-    #
+        # with Session() as session:
+        #     print('in session')
+        #
         rec1 = File('demo.txt', 1500)
         # print(session.save_if_not_exists(rec1))
 
         with Session(db) as session:
             session.save_if_not_exists(rec1)
-
 
     # odb.stop_task()
     #
@@ -108,6 +107,3 @@ if __name__ == '__main__':
     #
     # related = Related()
     # print(related.connect(p1, p2))
-
-
-

@@ -33,7 +33,7 @@ class OrientUs(OrientDB):
 class OrientUsDB(Thread):
 
     def __init__(self, db_name: str, username: str, password: str,
-                 host: str = 'localhost', port: int = 2424, ):
+                 host: str = 'localhost', port: int = 2424, debug=False):
         super().__init__()
 
         self.host = host
@@ -41,6 +41,7 @@ class OrientUsDB(Thread):
         self.db_name = db_name
         self.username = username
         self.password = password
+        self.debug = debug
 
         self.connection_pool: Deque[OrientUs] = deque(maxlen=10)
 
@@ -50,8 +51,9 @@ class OrientUsDB(Thread):
 
         OrientUsDB.db = self
 
-        print("-- Initializing '%s' orientus database --" % (self.db_name))
-        print()
+        if self.debug:
+            print("-- Initializing '%s' orientus database --" % (self.db_name))
+            print()
 
     def __enter__(self):
         return self
@@ -60,8 +62,9 @@ class OrientUsDB(Thread):
         self.stop()
 
     def stop(self):
-        print()
-        print("-- Closing '%s' orientus database --" % self.db_name)
+        if self.debug:
+            print()
+            print("-- Closing '%s' orientus database --" % self.db_name)
 
         for conn in self.connection_pool:
             conn.close()
