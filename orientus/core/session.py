@@ -100,10 +100,11 @@ class AbstractSession(ABC):
 
         return True
 
-    def upsert(self, record: ORecord) -> bool:
-        update_cmd = "update %s set %s upsert where %s" % (
+    def update(self, record: ORecord, upsert=True) -> bool:
+        update_cmd = "update %s set %s %s where %s" % (
             record.class_name(),
             self._fields_to_str(record),
+            'upsert' if upsert else '',
             self._fields_to_str(record, delimiter='AND')
         )
 
@@ -111,7 +112,7 @@ class AbstractSession(ABC):
 
         return True
 
-    def update(self, record: ORecord) -> bool:
+    def update_by_id(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),

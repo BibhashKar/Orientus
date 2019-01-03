@@ -9,4 +9,4 @@ if __name__ == '__main__':
 
             # doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
             file = File('demo.txt', 1500)
-            session.upsert(file)
+            session.update(file)

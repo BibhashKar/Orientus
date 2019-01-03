@@ -76,11 +76,11 @@ if __name__ == '__main__':
         with BatchSession(db) as session:
 
             doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
-            session.save(doc)
+            session.update(doc)
 
             for index, sent_text in enumerate(doc.text.split('.')):
                 sent = Sentence(index, sent_text)
-                session.save(sent)
+                session.update(sent)
 
                 sent_doc_edge = SentenceToDoc(sent, doc)
                 session.save(sent_doc_edge)
