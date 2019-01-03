@@ -1,6 +1,6 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import ClassVar, List, Optional
+from typing import List
 
 from pyorient import OrientRecord, PyOrientCommandException
 
@@ -28,7 +28,7 @@ class BatchHolder:
 
     def finalize(self) -> str:
         result = ["let %s = %s" % (variable, query) for variable, query in self.query_dict.items()]
-        return "\n".join(["begin;", ";".join(result), "commit retry 10;"])
+        return "\n".join(["begin;", ";\n".join(result), "commit retry 10;"])
 
 
 class AbstractSession(ABC):
@@ -37,6 +37,8 @@ class AbstractSession(ABC):
         self.db = db
         self.debug = db.debug
 
+        self.command_history = []
+
     def __enter__(self):
         self.connection = self.db.acquire_connection()
         return self
@@ -44,29 +46,33 @@ class AbstractSession(ABC):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.db.release_connection(self.connection)
 
-    def command(self, str) -> List[OrientRecord]:
-        try:
-            results = self.connection.command(str)
-        except PyOrientCommandException:
-            return []
+    @abstractmethod
+    def command(self, statement: str, record: ORecord = None):
+        pass
 
-        return results
-
+    @abstractmethod
     def query(self, query: str, limit: int = -1) -> str:
         if limit > -1 and ' limit ' not in query:
             query = '%s limit %s' % (query, limit)
 
-        if self.debug: print('Query:', query)
-
         return query
 
-    def _process_dml(self, statement: str, record: ORecord = None) -> str:
-        if self.debug: print(statement)
-        return statement
+    def create_class(self, clz_name, record) -> bool:
+        if isinstance(record, OVertex):
+            clz_create_cmd = 'create class %s if not exists extends V' % clz_name
+        else:
+            clz_create_cmd = 'create class %s if not exists' % clz_name
 
-    def _add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
-        frm_id = self._record_id(frm)
-        to_id = self._record_id(to)
+        if clz_create_cmd in self.command_history:
+            return False
+        else:
+            self.command_history.append(clz_create_cmd)
+            self.command(clz_create_cmd)
+            return True
+
+    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
+        frm_id = self._get_id(frm)
+        to_id = self._get_id(to)
 
         assert bool(frm_id)
         assert bool(to_id)
@@ -76,7 +82,7 @@ class AbstractSession(ABC):
         if value_str:
             create_cmd += ' set ' + value_str
 
-        self._process_dml(create_cmd, edge)
+        self.command(create_cmd, edge)
 
         return True
 
@@ -84,18 +90,13 @@ class AbstractSession(ABC):
         clz_name = record.__class__.__name__
 
         if isinstance(record, OEdge):
-            return self._add_edge(record._from_vertex, record._to_vertex, record)
+            return self.add_edge(record._from_vertex, record._to_vertex, record)
 
-        if isinstance(record, OVertex):
-            clz_create_cmd = 'create class %s if not exists extends V' % clz_name
-        else:
-            clz_create_cmd = 'create class %s if not exists' % clz_name
-
-        self._process_dml(clz_create_cmd)
+        self.create_class(clz_name, record)
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
 
-        self._process_dml(insert_cmd, record)
+        self.command(insert_cmd, record)
 
         return True
 
@@ -106,7 +107,7 @@ class AbstractSession(ABC):
             self._fields_to_str(record, delimiter='AND')
         )
 
-        self._process_dml(update_cmd, record)
+        self.command(update_cmd, record)
 
         return True
 
@@ -114,15 +115,15 @@ class AbstractSession(ABC):
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),
-            self._record_id(record)
+            self._get_id(record)
         )
 
-        self._process_dml(update_cmd, record)
+        self.command(update_cmd, record)
 
         return True
 
     def delete(self, record: ORecord) -> bool:
-        id = self._record_id(record)
+        id = self._get_id(record)
 
         if isinstance(record, OVertex):
             delete_cmd = "delete vertex %s" % id
@@ -131,11 +132,12 @@ class AbstractSession(ABC):
         else:
             delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), id)
 
-        self._process_dml(delete_cmd, record)
+        self.command(delete_cmd, record)
 
         return True
 
-    def _record_id(self, record: ORecord) -> str:
+    @abstractmethod
+    def _get_id(self, record: ORecord) -> str:
         pass
 
     def _fields_to_str(self, record, delimiter=',') -> str:
@@ -158,28 +160,32 @@ class AbstractSession(ABC):
 
 class Session(AbstractSession):
 
+    def command(self, statement, record: ORecord = None) -> List[OrientRecord]:
+        if self.debug: print('Command:', statement)
+        try:
+            results = self.connection.command(statement)
+
+            if self.debug: print('Result Count:', len(results))
+
+            if record is not None and len(results) > 0:
+                record._rid = results[0]._rid
+                record._version = results[0]._version
+
+                if self.debug: print('rid', results[0]._rid)
+
+        except PyOrientCommandException:
+            return []
+
+        return results
+
     def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
         query = super().query(query, limit)
 
         results = self.command(query)
-        if self.debug: print('Results size:', len(results))
 
         return results
 
-    def _process_dml(self, statement: str, record: ORecord = None) -> bool:
-        super()._process_dml(statement, record)
-
-        results = self.command(statement)
-
-        if len(results) > 0:
-            record._rid = results[0]._rid
-            record._version = results[0]._version
-
-            if self.debug: print('rid', results[0]._rid)
-
-        return True
-
-    def _record_id(self, record: ORecord) -> str:
+    def _get_id(self, record: ORecord) -> str:
         return record._rid
 
 
@@ -195,9 +201,13 @@ class BatchSession(AbstractSession):
 
         if self.debug: print(self.batch_holder.finalize())
 
-        result = self.connection.batch(self.batch_holder.finalize() + "return $File1;")
+        # result = self.connection.batch(self.batch_holder.finalize() + "return $File1;")
         # for r in result:
         #     print(r._rid)
+
+    def command(self, statement: str, record: ORecord = None):
+        if self.debug: print('Command:', statement)
+        self.batch_holder.add(statement, record)
 
     def query(self, query: str, limit: int = -1) -> bool:
         query = super().query(query, limit)
@@ -207,10 +217,5 @@ class BatchSession(AbstractSession):
 
         return True
 
-    def _process_dml(self, statement: str, record: ORecord = None) -> bool:
-        super()._process_dml(statement)
-        self.batch_holder.add(statement, record)
-        return True
-
-    def _record_id(self, record: ORecord) -> str:
+    def _get_id(self, record: ORecord) -> str:
         return record._batch_id

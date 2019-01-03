@@ -71,11 +71,9 @@ class Token(OVertex):
 
 
 if __name__ == '__main__':
-    with OrientUsDB('test', 'root', 'admin') as db:
+    with OrientUsDB('test', 'root', 'admin', debug=True) as db:
 
         with BatchSession(db) as session:
-
-            session.start_batch()
 
             doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
             session.save(doc)
@@ -87,9 +85,8 @@ if __name__ == '__main__':
                 sent_doc_edge = SentenceToDoc(sent, doc)
                 session.save(sent_doc_edge)
 
-            session.end_batch()
 
             from pprint import pprint
 
-            for variable, sql in session.batch_holder.query_dict.items():
-                print(variable, '  -> ', sql)
+            # for variable, sql in session.batch_holder.query_dict.items():
+            #     print(variable, '  -> ', sql)
