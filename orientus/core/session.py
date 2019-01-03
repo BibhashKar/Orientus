@@ -60,10 +60,6 @@ class AbstractSession(ABC):
 
         return query
 
-    def fetch(self, cls: ClassVar, rid: str) -> str:
-        query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
-        return query
-
     def _process_dml(self, statement: str, record: ORecord = None) -> str:
         if self.debug: print(statement)
         return statement
@@ -102,22 +98,6 @@ class AbstractSession(ABC):
         self._process_dml(insert_cmd, record)
 
         return True
-
-    # TODO
-    def save_if_not_exists(self, record: ORecord) -> bool:
-        query = "select from %s where %s" % (
-            record.class_name(),
-            self._fields_to_str(record, delimiter='AND')
-        )
-
-        results = self.query(query)
-
-        if len(results) > 0:
-            record._rid = results[0]._rid
-            record._version = results[0]._version
-            return True
-        else:
-            return self.save(record)
 
     def upsert(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s upsert where %s" % (
@@ -186,23 +166,12 @@ class Session(AbstractSession):
 
         return results
 
-    def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
-        results = self.query(super().fetch(cls, rid))
-
-        if len(results) > 0:
-            return results[0]
-        else:
-            return None
-
     def _process_dml(self, statement: str, record: ORecord = None) -> bool:
-
         super()._process_dml(statement, record)
-
-        if self.debug: print(statement)
 
         results = self.command(statement)
 
-        if len(results) > 1:
+        if len(results) > 0:
             record._rid = results[0]._rid
             record._version = results[0]._version
 
