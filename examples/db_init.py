@@ -2,7 +2,7 @@ from pyorient import OrientRecord
 
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import OVertex, OEdge, ORecord
-from orientus.core.session import Session
+from orientus.core.session import BatchSession
 
 
 class Animal(OVertex):
@@ -44,7 +44,52 @@ def to_File(data: OrientRecord):
     return f
 
 
+class Doc(OVertex):
+    def __init__(self, text):
+        super().__init__()
+        self.text = text
+
+
+class Sentence(OVertex):
+    def __init__(self, index, text):
+        super().__init__()
+        self.index = index
+        self.text = text
+
+
+class SentenceToDoc(OEdge):
+
+    def __init__(self, frm_vertex, to_vertex):
+        super().__init__(frm_vertex, to_vertex)
+
+
+class Token(OVertex):
+    def __init__(self, index, text):
+        super().__init__()
+        self.index = index
+        self.text = text
+
+
 if __name__ == '__main__':
     with OrientUsDB('test', 'root', 'admin') as db:
-        with Session(db) as session:
-            session.save_if_not_exists(rec1)
+
+        with BatchSession(db) as session:
+
+            session.start_batch()
+
+            doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
+            session.save(doc)
+
+            for index, sent_text in enumerate(doc.text.split('.')):
+                sent = Sentence(index, sent_text)
+                session.save(sent)
+
+                sent_doc_edge = SentenceToDoc(sent, doc)
+                session.save(sent_doc_edge)
+
+            session.end_batch()
+
+            from pprint import pprint
+
+            for variable, sql in session.batch_holder.query_dict.items():
+                print(variable, '  -> ', sql)

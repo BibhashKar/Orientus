@@ -21,6 +21,7 @@ class ORecord:
     def __init__(self, rid='', version=''):
         self._rid = rid
         self._version = version
+        self._batch_id = None
 
     # TODO: think about this method
     def has_valid_rid(self):
@@ -83,14 +84,14 @@ class OVertex(OElement):
 
 class OEdge(OElement):
 
-    def __init__(self):
+    def __init__(self, frm_vertex, to_vertex):
         super().__init__()
-        self._from_vertex: OVertex = None
-        self._to_vertex: OVertex = None
+        self._from_vertex: OVertex = frm_vertex
+        self._to_vertex: OVertex = to_vertex
 
-    def connect(self, frm: OVertex, to: OVertex):
-        self._from_vertex = frm
-        self._to_vertex = to
+    # def connect(self, frm: OVertex, to: OVertex):
+    #     self._from_vertex = frm
+    #     self._to_vertex = to
 
     def get_from(self) -> OVertex:
         pass

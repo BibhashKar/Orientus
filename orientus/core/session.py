@@ -1,4 +1,6 @@
-from typing import ClassVar, List
+from abc import ABC
+from collections import OrderedDict
+from typing import ClassVar, List, Optional
 
 from pyorient import OrientRecord, PyOrientCommandException
 
@@ -6,7 +8,30 @@ from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 
 
-class Session:
+class BatchHolder:
+
+    def __init__(self):
+        self.index = 0
+        self.obj_dict = {}
+        self.query_dict = OrderedDict()
+
+    def add(self, statement: str, record: ORecord = None):
+        self.index += 1
+        idx_str = str(self.index)
+
+        if record is None:
+            self.query_dict['qry' + idx_str] = statement
+        else:
+            if record._batch_id is None:
+                record._batch_id = record.class_name() + idx_str
+                self.query_dict[record._batch_id] = statement
+
+    def finalize(self) -> str:
+        result = ["let %s = %s" % (variable, query) for variable, query in self.query_dict.items()]
+        return "\n".join(["begin;", ";".join(result), "commit retry 10;"])
+
+
+class AbstractSession(ABC):
 
     def __init__(self, db: OrientUsDB):
         self.db = db
@@ -19,37 +44,67 @@ class Session:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.db.release_connection(self.connection)
 
-    def save(self, record: ORecord) -> str:
-        if self.debug:
-            print('in %s' % self.save.__name__)
+    def command(self, str) -> List[OrientRecord]:
+        try:
+            results = self.connection.command(str)
+        except PyOrientCommandException:
+            return []
 
+        return results
+
+    def query(self, query: str, limit: int = -1) -> str:
+        if limit > -1 and ' limit ' not in query:
+            query = '%s limit %s' % (query, limit)
+
+        if self.debug: print('Query:', query)
+
+        return query
+
+    def fetch(self, cls: ClassVar, rid: str) -> str:
+        query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
+        return query
+
+    def _process_dml(self, statement: str, record: ORecord = None) -> str:
+        if self.debug: print(statement)
+        return statement
+
+    def _add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
+        frm_id = self._record_id(frm)
+        to_id = self._record_id(to)
+
+        assert bool(frm_id)
+        assert bool(to_id)
+
+        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm_id, to_id)
+        value_str = self._fields_to_str(edge)
+        if value_str:
+            create_cmd += ' set ' + value_str
+
+        self._process_dml(create_cmd, edge)
+
+        return True
+
+    def save(self, record: ORecord) -> bool:
         clz_name = record.__class__.__name__
 
-        from orientus.core.domain import OVertex, OEdge
-
         if isinstance(record, OEdge):
-            return self.add_edge(record._from_vertex, record._to_vertex, record)
+            return self._add_edge(record._from_vertex, record._to_vertex, record)
 
         if isinstance(record, OVertex):
             clz_create_cmd = 'create class %s if not exists extends V' % clz_name
         else:
             clz_create_cmd = 'create class %s if not exists' % clz_name
 
-        if self.debug:
-            print(clz_create_cmd)
-            print('record class create:', self.command(clz_create_cmd))
+        self._process_dml(clz_create_cmd)
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
-        if self.debug: print(insert_cmd)
 
-        result = self.command(insert_cmd)
+        self._process_dml(insert_cmd, record)
 
-        record._rid = result[0]._rid
-        if self.debug: print('rid', result[0]._rid)
+        return True
 
-        return result[0]._rid
-
-    def save_if_not_exists(self, record: ORecord) -> str:
+    # TODO
+    def save_if_not_exists(self, record: ORecord) -> bool:
         query = "select from %s where %s" % (
             record.class_name(),
             self._fields_to_str(record, delimiter='AND')
@@ -60,85 +115,53 @@ class Session:
         if len(results) > 0:
             record._rid = results[0]._rid
             record._version = results[0]._version
-            return record._rid
+            return True
         else:
             return self.save(record)
 
-    def fetch(self, cls: ClassVar, rid: str) -> OrientRecord:
-        query = "select from %s where @rid = '%s'" % ((cls.__name__), rid)
+    def upsert(self, record: ORecord) -> bool:
+        update_cmd = "update %s set %s upsert where %s" % (
+            record.class_name(),
+            self._fields_to_str(record),
+            self._fields_to_str(record, delimiter='AND')
+        )
 
-        results = self.query(query)
+        self._process_dml(update_cmd, record)
 
-        if len(results) > 0:
-            return results[0]
-        else:
-            return None
-
-    def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
-        if limit > -1 and ' limit ' not in query:
-            query = '%s limit %s' % (query, limit)
-
-        if self.debug: print('Query:', query)
-
-        results = self.command(query)
-        if self.debug: print('Results size:', len(results))
-
-        return results
+        return True
 
     def update(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s where @rid = '%s'" % (
             record.class_name(),
             self._fields_to_str(record),
-            record._rid
+            self._record_id(record)
         )
-        if self.debug: print(update_cmd)
 
-        results = self.command(update_cmd)
-        if self.debug: print(results)
+        self._process_dml(update_cmd, record)
 
-        return len(results) == 1
+        return True
 
     def delete(self, record: ORecord) -> bool:
+        id = self._record_id(record)
+
         if isinstance(record, OVertex):
-            delete_cmd = "delete vertex %s" % record._rid
+            delete_cmd = "delete vertex %s" % id
         elif isinstance(record, OEdge):
-            delete_cmd = "delete edge %s" % record._rid
+            delete_cmd = "delete edge %s" % id
         else:
-            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), record._rid)
+            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), id)
 
-        if self.debug: print(delete_cmd)
+        self._process_dml(delete_cmd, record)
 
-        results = self.command(delete_cmd)
+        return True
 
-        return len(results) == 1
-
-    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> str:
-        assert bool(frm._rid)
-        assert bool(to._rid)
-
-        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm._rid, to._rid)
-        value_str = self._fields_to_str(edge)
-        if value_str:
-            create_cmd += ' set ' + value_str
-
-        if self.debug: print(create_cmd)
-
-        results = self.command(create_cmd)
-
-        return results[0]._rid
-
-    def command(self, str) -> List[OrientRecord]:
-        try:
-            results = self.connection.command(str)
-        except PyOrientCommandException:
-            return []
-
-        return results
+    def _record_id(self, record: ORecord) -> str:
+        pass
 
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
         for field, value in record.__dict__.items():
-            if field in ['_rid', '_version', '_from_vertex',
+            if field in ['_batch_id', '_rid', '_version', '_from_vertex',
                          '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
             modified_val = "'%s'" % value if type(value) == str else value
@@ -151,3 +174,74 @@ class Session:
         obj._version = data._version
 
         return obj
+
+
+class Session(AbstractSession):
+
+    def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
+        query = super().query(query, limit)
+
+        results = self.command(query)
+        if self.debug: print('Results size:', len(results))
+
+        return results
+
+    def fetch(self, cls: ClassVar, rid: str) -> Optional[OrientRecord]:
+        results = self.query(super().fetch(cls, rid))
+
+        if len(results) > 0:
+            return results[0]
+        else:
+            return None
+
+    def _process_dml(self, statement: str, record: ORecord = None) -> bool:
+
+        super()._process_dml(statement, record)
+
+        if self.debug: print(statement)
+
+        results = self.command(statement)
+
+        if len(results) > 1:
+            record._rid = results[0]._rid
+            record._version = results[0]._version
+
+            if self.debug: print('rid', results[0]._rid)
+
+        return True
+
+    def _record_id(self, record: ORecord) -> str:
+        return record._rid
+
+
+class BatchSession(AbstractSession):
+
+    def __init__(self, db: OrientUsDB):
+        super().__init__(db)
+
+        self.batch_holder = BatchHolder()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+
+        if self.debug: print(self.batch_holder.finalize())
+
+        result = self.connection.batch(self.batch_holder.finalize() + "return $File1;")
+        # for r in result:
+        #     print(r._rid)
+
+    def query(self, query: str, limit: int = -1) -> bool:
+        query = super().query(query, limit)
+
+        print(query)
+        self.batch_holder.add(query)
+
+        return True
+
+    def _process_dml(self, statement: str, record: ORecord = None) -> bool:
+        super()._process_dml(statement)
+        self.batch_holder.add(statement, record)
+        return True
+
+    def _record_id(self, record: ORecord) -> str:
+        return record._batch_id
