@@ -44,54 +44,61 @@ def to_File(data: OrientRecord):
     return f
 
 
-class Doc(OVertex):
+class TestDoc(OVertex):
     def __init__(self, text):
         super().__init__()
         self.text = text
 
 
-class Sentence(OVertex):
+class TestSentence(OVertex):
     def __init__(self, text):
         super().__init__()
         self.text = text
 
 
-class SentenceToDoc(OEdge):
+class TestSentenceToDoc(OEdge):
 
     def __init__(self, frm_vertex, to_vertex):
         super().__init__(frm_vertex, to_vertex)
         # self.index = None
 
 
-class Token(OVertex):
-    def __init__(self, index, text):
+class TokenTest(OVertex):
+    def __init__(self, text):
         super().__init__()
         # self.index = index
         self.text = text
 
 
-if __name__ == '__main__':
+def test_recreate_db():
     db_name = 'test'
 
     client = OrientUs()
     client.connect('root', 'admin')
     client.recreate_db(db_name)
 
-    # with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
-    #
-    #     with BatchSession(db) as session:
-    #
-    #         session.start_batch()
-    #
-    #         doc = Doc("I am Kelvin Clan. I am the brand. I am the brand. I am fashion.")
-    #         session.save(doc)
-    #
-    #         for index, sent_text in enumerate(doc.text.split('.')):
-    #             sent = Sentence(sent_text)
-    #             session.save(sent)
-    #
-    #             sent_doc_edge = SentenceToDoc(sent, doc)
-    #             # sent_doc_edge.index = index
-    #             session.save(sent_doc_edge)
-    #
-    #         session.end_batch()
+
+if __name__ == '__main__':
+    db_name = 'test'
+
+    with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
+        with BatchSession(db) as session:
+            session.start_batch()
+
+            var = "''"
+            # var = "J'H"
+            t = TokenTest(var.replace("'", "\\'"))
+            session.save(t)
+
+            # doc = TestDoc('. "I am Kelvin Clan". I am the brand. I am the brand. I am fashion.')
+            # session.save(doc)
+            #
+            # for index, sent_text in enumerate(doc.text.split('.')):
+            #     sent = TestSentence(sent_text)
+            #     session.save(sent)
+            #
+            #     sent_doc_edge = TestSentenceToDoc(sent, doc)
+            #     sent_doc_edge.index = index
+            # session.save(sent_doc_edge)
+
+            session.end_batch()

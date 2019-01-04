@@ -91,7 +91,7 @@ class AbstractSession(ABC):
             if field in ['_batch_id', '_rid', '_version', '_from_vertex',
                          '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
-            modified_val = "'%s'" % value if type(value) == str else value
+            modified_val = "'%s'" % value.replace("'", "\\'") if type(value) == str else value
             values.append("%s = %s" % (field, modified_val))
         return (' %s ' % delimiter).join(values)
 
@@ -228,6 +228,7 @@ class BatchSession(AbstractSession):
             self.create_class(cls, record)
 
         batch_query = self.query_builder.finalize()
+        if self.debug: print(batch_query)
         result = self.connection.batch(batch_query)
         # print('Batch result:', result)
 
