@@ -51,9 +51,8 @@ class Doc(OVertex):
 
 
 class Sentence(OVertex):
-    def __init__(self, index, text):
+    def __init__(self, text):
         super().__init__()
-        self.index = index
         self.text = text
 
 
@@ -61,12 +60,13 @@ class SentenceToDoc(OEdge):
 
     def __init__(self, frm_vertex, to_vertex):
         super().__init__(frm_vertex, to_vertex)
+        # self.index = None
 
 
 class Token(OVertex):
     def __init__(self, index, text):
         super().__init__()
-        self.index = index
+        # self.index = index
         self.text = text
 
 
@@ -74,17 +74,18 @@ if __name__ == '__main__':
     with OrientUsDB('test', 'root', 'admin', debug=True) as db:
 
         with BatchSession(db) as session:
-
             doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
-            session.update(doc)
+            session.save(doc)
 
             for index, sent_text in enumerate(doc.text.split('.')):
-                sent = Sentence(index, sent_text)
+                sent = Sentence(sent_text)
                 session.update(sent)
 
                 sent_doc_edge = SentenceToDoc(sent, doc)
+                # sent_doc_edge.index = index
                 session.save(sent_doc_edge)
 
+                break
 
             from pprint import pprint
 

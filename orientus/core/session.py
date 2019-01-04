@@ -8,29 +8,6 @@ from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 
 
-class BatchHolder:
-
-    def __init__(self):
-        self.index = 0
-        self.obj_dict = {}
-        self.query_dict = OrderedDict()
-
-    def add(self, statement: str, record: ORecord = None):
-        self.index += 1
-        idx_str = str(self.index)
-
-        if record is None:
-            self.query_dict['qry' + idx_str] = statement
-        else:
-            if record._batch_id is None:
-                record._batch_id = record.class_name() + idx_str
-                self.query_dict[record._batch_id] = statement
-
-    def finalize(self) -> str:
-        result = ["let %s = %s" % (variable, query) for variable, query in self.query_dict.items()]
-        return "\n".join(["begin;", ";\n".join(result), "commit retry 10;"])
-
-
 class AbstractSession(ABC):
 
     def __init__(self, db: OrientUsDB):
@@ -190,19 +167,50 @@ class Session(AbstractSession):
         return record._rid
 
 
+class BatchQueryBuilder:
+
+    def __init__(self):
+        self.index = 0
+        self.record_list: List[ORecord] = []
+        self.query_dict = OrderedDict()
+
+    def add(self, statement: str, record: ORecord = None):
+        self.index += 1
+        idx_str = str(self.index)
+
+        if record is None:
+            self.query_dict['qry' + idx_str] = statement
+        else:
+            if record._batch_id is None:
+                record._batch_id = record.class_name() + idx_str
+                self.query_dict[record._batch_id] = statement
+
+                self.record_list.append(record)
+
+    # TODO: think about batch return data
+    def finalize(self) -> str:
+        for r in self.record_list:
+            r._batch_id = None
+
+        result = ["let %s = %s" % (variable, query) for variable, query in self.query_dict.items()]
+
+        return "\n".join(["begin;", ";\n".join(result), "commit retry 10;"])
+
+
 class BatchSession(AbstractSession):
 
     def __init__(self, db: OrientUsDB):
         super().__init__(db)
 
-        self.batch_holder = BatchHolder()
+        self.batch_holder = BatchQueryBuilder()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
 
         if self.debug: print(self.batch_holder.finalize())
 
-        # result = self.connection.batch(self.batch_holder.finalize() + "return $File1;")
+        result = self.connection.batch(self.batch_holder.finalize())
+        print('Batch result:', result)
         # for r in result:
         #     print(r._rid)
 
@@ -219,4 +227,4 @@ class BatchSession(AbstractSession):
         return True
 
     def _get_id(self, record: ORecord) -> str:
-        return record._batch_id
+        return "$" + record._batch_id
