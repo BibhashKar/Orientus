@@ -1,6 +1,7 @@
+import pyorient
 from pyorient import OrientRecord
 
-from orientus.core.db import OrientUsDB
+from orientus.core.db import OrientUsDB, OrientUs
 from orientus.core.domain import OVertex, OEdge, ORecord
 from orientus.core.session import BatchSession
 
@@ -71,23 +72,24 @@ class Token(OVertex):
 
 
 if __name__ == '__main__':
-    with OrientUsDB('test', 'root', 'admin', debug=True) as db:
+    db_name = 'test'
+
+    # client = OrientUs()
+    # client.connect('root', 'admin')
+    # client.recreate_db(db_name)
+
+    with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
 
         with BatchSession(db) as session:
-            doc = Doc("I am Kelvin Clan. I am the brand. I am fashion.")
+            doc = Doc("I am Kelvin Clan. I am the brand. I am the brand. I am fashion.")
             session.save(doc)
 
             for index, sent_text in enumerate(doc.text.split('.')):
                 sent = Sentence(sent_text)
-                session.update(sent)
+                session.save(sent)
 
                 sent_doc_edge = SentenceToDoc(sent, doc)
                 # sent_doc_edge.index = index
                 session.save(sent_doc_edge)
 
-                break
-
-            from pprint import pprint
-
-            # for variable, sql in session.batch_holder.query_dict.items():
-            #     print(variable, '  -> ', sql)
+                # break

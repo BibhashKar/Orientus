@@ -3,6 +3,7 @@ from collections import deque
 from threading import Thread
 from typing import Deque
 
+import pyorient
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization
 
 
@@ -28,6 +29,17 @@ class OrientUs(OrientDB):
             connection = host
 
         self._connection = connection
+
+    def recreate_db(self, db_name: str, db_type=pyorient.DB_TYPE_GRAPH, storage_type=pyorient.STORAGE_TYPE_PLOCAL):
+        connection = self.acquire_connection()
+
+        if connection.db_exists(db_name):
+            connection.db_drop(db_name)
+            connection.db_create(db_name, db_type, storage_type)
+        else:
+            connection.db_create(db_name, db_type, storage_type)
+
+        self.release_connection(connection)
 
 
 class OrientUsDB(Thread):
