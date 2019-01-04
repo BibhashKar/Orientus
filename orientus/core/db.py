@@ -31,15 +31,11 @@ class OrientUs(OrientDB):
         self._connection = connection
 
     def recreate_db(self, db_name: str, db_type=pyorient.DB_TYPE_GRAPH, storage_type=pyorient.STORAGE_TYPE_PLOCAL):
-        connection = self.acquire_connection()
-
-        if connection.db_exists(db_name):
-            connection.db_drop(db_name)
-            connection.db_create(db_name, db_type, storage_type)
+        if self.db_exists(db_name):
+            self.db_drop(db_name)
+            self.db_create(db_name, db_type, storage_type)
         else:
-            connection.db_create(db_name, db_type, storage_type)
-
-        self.release_connection(connection)
+            self.db_create(db_name, db_type, storage_type)
 
 
 class OrientUsDB(Thread):

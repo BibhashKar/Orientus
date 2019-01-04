@@ -40,12 +40,16 @@ class AbstractSession(ABC):
         else:
             clz_create_cmd = 'create class %s if not exists' % clz_name
 
-        if clz_create_cmd in self.command_history:
-            return False
-        else:
-            self.command_history.append(clz_create_cmd)
-            self.command(clz_create_cmd)
-            return True
+        # if clz_create_cmd in self.command_history:
+        #     return False
+        # else:
+        #     self.command_history.append(clz_create_cmd)
+
+        if self.debug: print(clz_create_cmd)
+
+        self.connection.command(clz_create_cmd)
+
+        return True
 
     def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
         frm_id = self._get_id(frm)
@@ -63,13 +67,13 @@ class AbstractSession(ABC):
 
         return True
 
-    def save(self, record: ORecord) -> bool:
-        clz_name = record.__class__.__name__
+    def save(self, record: ORecord, create_class=True) -> bool:
+        clz_name = record.class_name()
 
         if isinstance(record, OEdge):
             return self.add_edge(record._from_vertex, record._to_vertex, record)
 
-        self.create_class(clz_name, record)
+        if create_class: self.create_class(clz_name, record)
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
 
@@ -194,7 +198,7 @@ class BatchQueryBuilder:
 
         result = ["let %s = %s" % (variable, query) for variable, query in self.query_dict.items()]
 
-        return "\n".join(["begin;", ";\n".join(result), "commit retry 10;"])
+        return ";\n".join(["begin", ";\n".join(result), "commit retry 10;"])
 
 
 class BatchSession(AbstractSession):
@@ -202,29 +206,39 @@ class BatchSession(AbstractSession):
     def __init__(self, db: OrientUsDB):
         super().__init__(db)
 
-        self.batch_holder = BatchQueryBuilder()
+        self.query_builder = BatchQueryBuilder()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
 
-        if self.debug: print(self.batch_holder.finalize())
+        if self.debug: print(self.query_builder.finalize())
 
-        result = self.connection.batch(self.batch_holder.finalize())
+        record_classes = {}
+        for record in self.query_builder.record_list:
+            if not isinstance(record, OEdge) and record.class_name() not in record_classes.keys():
+                record_classes[record.class_name()] = record
+
+        print(record_classes)
+        for cls, record in record_classes.items():
+            self.create_class(cls, record)
+
+        result = self.connection.batch(self.query_builder.finalize())
         print('Batch result:', result)
-        # for r in result:
-        #     print(r._rid)
 
     def command(self, statement: str, record: ORecord = None):
         if self.debug: print('Command:', statement)
-        self.batch_holder.add(statement, record)
+        self.query_builder.add(statement, record)
 
     def query(self, query: str, limit: int = -1) -> bool:
         query = super().query(query, limit)
 
         print(query)
-        self.batch_holder.add(query)
+        self.query_builder.add(query)
 
         return True
+
+    def save(self, record: ORecord, create_class=True) -> bool:
+        return super().save(record, create_class=False)
 
     def _get_id(self, record: ORecord) -> str:
         return "$" + record._batch_id

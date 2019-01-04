@@ -1,4 +1,3 @@
-import pyorient
 from pyorient import OrientRecord
 
 from orientus.core.db import OrientUsDB, OrientUs
@@ -74,9 +73,9 @@ class Token(OVertex):
 if __name__ == '__main__':
     db_name = 'test'
 
-    # client = OrientUs()
-    # client.connect('root', 'admin')
-    # client.recreate_db(db_name)
+    client = OrientUs()
+    client.connect('root', 'admin')
+    client.recreate_db(db_name)
 
     with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
 
