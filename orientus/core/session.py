@@ -77,43 +77,6 @@ class AbstractSession(ABC):
 
         return True
 
-    def update(self, record: ORecord, upsert=True) -> bool:
-        update_cmd = "update %s set %s %s where %s" % (
-            record.class_name(),
-            self._fields_to_str(record),
-            'upsert' if upsert else '',
-            self._fields_to_str(record, delimiter='AND')
-        )
-
-        self.command(update_cmd, record)
-
-        return True
-
-    def update_by_id(self, record: ORecord) -> bool:
-        update_cmd = "update %s set %s where @rid = '%s'" % (
-            record.class_name(),
-            self._fields_to_str(record),
-            self._get_id(record)
-        )
-
-        self.command(update_cmd, record)
-
-        return True
-
-    def delete(self, record: ORecord) -> bool:
-        id = self._get_id(record)
-
-        if isinstance(record, OVertex):
-            delete_cmd = "delete vertex %s" % id
-        elif isinstance(record, OEdge):
-            delete_cmd = "delete edge %s" % id
-        else:
-            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), id)
-
-        self.command(delete_cmd, record)
-
-        return True
-
     @abstractmethod
     def _get_id(self, record: ORecord) -> str:
         pass
@@ -162,6 +125,43 @@ class Session(AbstractSession):
         results = self.command(query)
 
         return results
+
+    def update(self, record: ORecord, upsert=True) -> bool:
+        update_cmd = "update %s set %s %s where %s" % (
+            record.class_name(),
+            self._fields_to_str(record),
+            'upsert' if upsert else '',
+            self._fields_to_str(record, delimiter='AND')
+        )
+
+        self.command(update_cmd, record)
+
+        return True
+
+    def update_by_id(self, record: ORecord) -> bool:
+        update_cmd = "update %s set %s where @rid = '%s'" % (
+            record.class_name(),
+            self._fields_to_str(record),
+            self._get_id(record)
+        )
+
+        self.command(update_cmd, record)
+
+        return True
+
+    def delete(self, record: ORecord) -> bool:
+        id = self._get_id(record)
+
+        if isinstance(record, OVertex):
+            delete_cmd = "delete vertex %s" % id
+        elif isinstance(record, OEdge):
+            delete_cmd = "delete edge %s" % id
+        else:
+            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), id)
+
+        self.command(delete_cmd, record)
+
+        return True
 
     def _get_id(self, record: ORecord) -> str:
         return record._rid
