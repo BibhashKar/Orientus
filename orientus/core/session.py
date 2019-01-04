@@ -206,24 +206,32 @@ class BatchSession(AbstractSession):
     def __init__(self, db: OrientUsDB):
         super().__init__(db)
 
-        self.query_builder = BatchQueryBuilder()
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         super().__exit__(exc_type, exc_val, exc_tb)
 
-        if self.debug: print(self.query_builder.finalize())
+        if self.query_builder is not None:
+            raise ValueError("batch did not end properly")
+
+    def start_batch(self):
+        self.query_builder = BatchQueryBuilder()
+
+    def end_batch(self):
+        # if self.debug: print(self.query_builder.finalize())
 
         record_classes = {}
         for record in self.query_builder.record_list:
             if not isinstance(record, OEdge) and record.class_name() not in record_classes.keys():
                 record_classes[record.class_name()] = record
 
-        print(record_classes)
+        # print(record_classes)
         for cls, record in record_classes.items():
             self.create_class(cls, record)
 
-        result = self.connection.batch(self.query_builder.finalize())
-        print('Batch result:', result)
+        batch_query = self.query_builder.finalize()
+        result = self.connection.batch(batch_query)
+        # print('Batch result:', result)
+
+        self.query_builder = None
 
     def command(self, statement: str, record: ORecord = None):
         if self.debug: print('Command:', statement)

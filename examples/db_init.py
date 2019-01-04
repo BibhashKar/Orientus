@@ -77,18 +77,21 @@ if __name__ == '__main__':
     client.connect('root', 'admin')
     client.recreate_db(db_name)
 
-    with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
-
-        with BatchSession(db) as session:
-            doc = Doc("I am Kelvin Clan. I am the brand. I am the brand. I am fashion.")
-            session.save(doc)
-
-            for index, sent_text in enumerate(doc.text.split('.')):
-                sent = Sentence(sent_text)
-                session.save(sent)
-
-                sent_doc_edge = SentenceToDoc(sent, doc)
-                # sent_doc_edge.index = index
-                session.save(sent_doc_edge)
-
-                # break
+    # with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
+    #
+    #     with BatchSession(db) as session:
+    #
+    #         session.start_batch()
+    #
+    #         doc = Doc("I am Kelvin Clan. I am the brand. I am the brand. I am fashion.")
+    #         session.save(doc)
+    #
+    #         for index, sent_text in enumerate(doc.text.split('.')):
+    #             sent = Sentence(sent_text)
+    #             session.save(sent)
+    #
+    #             sent_doc_edge = SentenceToDoc(sent, doc)
+    #             # sent_doc_edge.index = index
+    #             session.save(sent_doc_edge)
+    #
+    #         session.end_batch()
