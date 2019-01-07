@@ -34,16 +34,13 @@ class AbstractSession(ABC):
 
         return query
 
-    def create_class(self, clz_name, record) -> bool:
-        if isinstance(record, OVertex):
-            clz_create_cmd = 'create class %s if not exists extends V' % clz_name
+    def create_class(self, clz) -> bool:
+        if issubclass(clz, OVertex):
+            clz_create_cmd = 'create class %s if not exists extends V' % clz.__name__
+        elif issubclass(clz, OEdge):
+            clz_create_cmd = 'create class %s if not exists extends E' % clz.__name__
         else:
-            clz_create_cmd = 'create class %s if not exists' % clz_name
-
-        # if clz_create_cmd in self.command_history:
-        #     return False
-        # else:
-        #     self.command_history.append(clz_create_cmd)
+            clz_create_cmd = 'create class %s if not exists' % clz.__name__
 
         if self.debug: print(clz_create_cmd)
 
@@ -67,13 +64,11 @@ class AbstractSession(ABC):
 
         return True
 
-    def save(self, record: ORecord, create_class=True) -> bool:
+    def save(self, record: ORecord) -> bool:
         clz_name = record.class_name()
 
         if isinstance(record, OEdge):
             return self.add_edge(record._from_vertex, record._to_vertex, record)
-
-        if create_class: self.create_class(clz_name, record)
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
 
@@ -224,9 +219,6 @@ class BatchSession(AbstractSession):
                 record_classes[record.class_name()] = record
 
         # print(record_classes)
-        for cls, record in record_classes.items():
-            self.create_class(cls, record)
-
         batch_query = self.query_builder.finalize()
         if self.debug: print(batch_query)
         result = self.connection.batch(batch_query)
@@ -246,8 +238,8 @@ class BatchSession(AbstractSession):
 
         return True
 
-    def save(self, record: ORecord, create_class=True) -> bool:
-        return super().save(record, create_class=False)
+    def save(self, record: ORecord) -> bool:
+        return super().save(record)
 
     def _get_id(self, record: ORecord) -> str:
         return "$" + record._batch_id
