@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from copy import copy
 from typing import List
 
 from pyorient import OrientRecord, PyOrientCommandException
@@ -98,6 +99,129 @@ class AbstractSession(ABC):
         return obj
 
 
+class GraphFunction:
+
+    def __init__(self, edge_class=None):
+        pass
+
+
+def prop(*args):
+    pass
+
+
+class Graph(GraphFunction):
+
+    def __init__(self):
+        super().__init__()
+
+        self.__sql = []
+
+        self.__vertex_on = False
+        self.__vertex_dict = {}
+
+    def match(self):
+        return self
+
+    def vertex(self, alias, class_type=None) -> 'Graph':
+        self.__vertex_on = True
+        self.__vertex_dict = {'class': class_type, 'as': alias}
+        return self
+
+    def where(self, clause: str) -> 'Graph':
+        if self.__vertex_on:
+            self.__vertex_dict['where'] = clause
+        return self
+
+    def when(self, clause: str) -> 'Graph':
+        if self.__vertex_on:
+            self.__vertex_dict['while'] = clause
+        return self
+
+    def outE(self, edge_class) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append(".%s(%s)" % ("out", edge_class))
+        return self
+
+    def inE(self, edge_class) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append(".%s(%s)" % ('in', edge_class))
+        return self
+
+    def bothE(self, edge_class) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append(".%s(%s)" % ('both', edge_class))
+        return self
+
+    def Not(self) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append("NOT")
+        return self
+
+    def return_result(self, clause: str, distinct=False, alias=None) -> 'Graph':
+        self.__close_vertex()
+
+        return_str = "RETURN"
+
+        if distinct:
+            return_str += " DISTINCT"
+
+        return_str += " %s" % (clause)
+
+        if alias:
+            return_str += " %s" % (alias)
+
+        self.__sql.append(return_str)
+
+        return self
+
+    def group_by(self, clause: str) -> 'Graph':
+        self.__close_vertex()
+        if clause:
+            self.__sql.append("GROUP BY %s" % (clause))
+        return self
+
+    def order_by(self, clause: str) -> 'Graph':
+        self.__close_vertex()
+        if clause:
+            self.__sql.append("ORDER BY %s" % (clause))
+        return self
+
+    def skip(self, number: int) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append("SKIP %s" % (number))
+        return self
+
+    def limit(self, number: int) -> 'Graph':
+        self.__close_vertex()
+        self.__sql.append("LIMIT %s" % (number))
+        return self
+
+    def done(self):
+        self.__close_vertex()
+        from pprint import pprint
+        print("MATCH\n" + "\n".join(self.__sql))
+
+    def __close_vertex(self):
+        if self.__vertex_on:
+
+            self.__vertex_on = False
+
+            class_str = "as: %s" % (self.__vertex_dict['as'])
+
+            if self.__vertex_dict.get('class') != None:
+                class_str += ", class: %s" % (self.__vertex_dict['class'])
+
+            if self.__vertex_dict.get('where') != None:
+                class_str += ", where: (%s)" % (self.__vertex_dict.get('where'))
+
+            if self.__vertex_dict.get('while') != None:
+                class_str += ", while: (%s)" % (self.__vertex_dict.get('while'))
+
+            self.__sql.append("{%s}" % (class_str))
+
+            self.__vertex_dict = {}
+
+
 class Session(AbstractSession):
 
     def command(self, statement, record: ORecord = None) -> List[OrientRecord]:
@@ -164,6 +288,9 @@ class Session(AbstractSession):
 
     def _get_id(self, record: ORecord) -> str:
         return record._rid
+
+    def match(self) -> Graph:
+        return Graph()
 
 
 class BatchQueryBuilder:
