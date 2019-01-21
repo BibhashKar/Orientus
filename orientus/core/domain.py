@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import List, Optional
 
+from orientus.core.datatypes import RawType
+
 
 class ORID:
     PREFIX = '#'
@@ -75,6 +77,8 @@ class ODirection(Enum):
 
 
 class OVertex(OElement):
+    depth = RawType(name='$depth')
+
     def get_edges(self, direction: ODirection) -> List['OEdge']:
         pass
 

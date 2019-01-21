@@ -1,12 +1,30 @@
+class Clause:
+    def __init__(self, expr: str):
+        self.expression = expr
+
+    def __repr__(self):
+        return self.expression
+
+    def and_(self, other):
+        print('in and clause')
+        return Clause("(%s AND %s)" % (self.expression, other.expression))
+
+    def or_(self, other):
+        print('in and clause')
+        return Clause("(%s OR %s)" % (self.expression, other.expression))
+
+
 class RawType:
 
-    def __init__(self, min: int = None,
+    def __init__(self, name: str,
+                 min: int = None,
                  max: int = None,
                  mandatory: bool = False,
                  readonly: bool = False,
                  nullable: bool = False,
                  unique: bool = False,
                  regex: str = None):
+        self.name = name
         self.min = min
         self.max = max
         self.mandatory = mandatory
@@ -16,7 +34,30 @@ class RawType:
         self.regex = regex
 
     def __eq__(self, other):
-        pass
+        return Clause("%s = %s" % (self.name, self.__get_other_value(other)))
+
+    def __ne__(self, other):
+        return Clause("%s != %s" % (self.name, self.__get_other_value(other)))
+
+    def __lt__(self, other):
+        return Clause("%s < %s" % (self.name, self.__get_other_value(other)))
+
+    def __le__(self, other):
+        return Clause("%s <= %s" % (self.name, self.__get_other_value(other)))
+
+    def __gt__(self, other):
+        return Clause("%s > %s" % (self.name, self.__get_other_value(other)))
+
+    def __ge__(self, other):
+        return Clause("%s >= %s" % (self.name, self.__get_other_value(other)))
+
+    def __get_other_value(self, other):
+        if isinstance(other, str):
+            return "'%s'" % (other)
+        if isinstance(other, RawType):
+            return other.name
+        else:
+            return other
 
 
 class OBoolean(RawType):

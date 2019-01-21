@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from copy import copy
-from typing import List
+from typing import List, ClassVar
 
 from pyorient import OrientRecord, PyOrientCommandException
 
+from orientus.core.datatypes import Clause
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 
@@ -122,19 +123,22 @@ class Graph(GraphFunction):
     def match(self):
         return self
 
-    def vertex(self, alias, class_type=None) -> 'Graph':
+    def vertex(self, alias, class_: ClassVar) -> 'Graph':
         self.__vertex_on = True
-        self.__vertex_dict = {'class': class_type, 'as': alias}
+        self.__vertex_dict = {'as': alias}
+        if class_:
+            self.__vertex_dict['class'] = class_.__name__
         return self
 
-    def where(self, clause: str) -> 'Graph':
+    def where(self, clause: Clause) -> 'Graph':
+        print(clause)
         if self.__vertex_on:
-            self.__vertex_dict['where'] = clause
+            self.__vertex_dict['where'] = str(clause)
         return self
 
-    def when(self, clause: str) -> 'Graph':
+    def when(self, clause: Clause) -> 'Graph':
         if self.__vertex_on:
-            self.__vertex_dict['while'] = clause
+            self.__vertex_dict['while'] = str(clause)
         return self
 
     def outE(self, edge_class) -> 'Graph':
