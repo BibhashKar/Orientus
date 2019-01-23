@@ -29,7 +29,8 @@ def match_query_test():
         .order_by('token') \
         .skip(number=10) \
         .limit(number=100) \
-        .done()
+        .done() \
+        .replace("\n", " ")
 
     expected_result = " ".join(["MATCH",
                                 "{as: token, class: Token, where: ((text = 'the' OR text = 'THE'))}",
@@ -45,7 +46,7 @@ def match_query_test():
                                 "SKIP 10",
                                 "LIMIT 100", ])
 
-    assert result.replace("\n", " ") == expected_result
+    assert result == expected_result
 
 
 match_query_test()
