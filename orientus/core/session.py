@@ -123,9 +123,9 @@ class Graph(GraphFunction):
     def match(self):
         return self
 
-    def vertex(self, class_: ClassVar, alias: str) -> 'Graph':
+    def vertex(self, vertex: OVertex, alias: str) -> 'Graph':
         self.__vertex_on = True
-        self.__vertex_dict = {'class': class_.__name__, 'as': alias}
+        self.__vertex_dict = {'class': vertex.___vertex_name__, 'as': alias}
         return self
 
     def where(self, clause: Clause) -> 'Graph':
@@ -133,32 +133,32 @@ class Graph(GraphFunction):
             self.__vertex_dict['where'] = str(clause)
         return self
 
-    def when(self, clause: Clause) -> 'Graph':
+    def while_(self, clause: Clause) -> 'Graph':
         if self.__vertex_on:
             self.__vertex_dict['while'] = str(clause)
         return self
 
-    def outE(self, edge_class) -> 'Graph':
+    def outE(self, edge: OEdge) -> 'Graph':
         self.__close_vertex()
-        self.__sql.append(".%s(%s)" % ("out", edge_class))
+        self.__sql.append(".%s(%s)" % ("out", edge.__edge_name__))
         return self
 
-    def inE(self, edge_class) -> 'Graph':
+    def inE(self, edge: OEdge) -> 'Graph':
         self.__close_vertex()
-        self.__sql.append(".%s(%s)" % ('in', edge_class))
+        self.__sql.append(".%s(%s)" % ('in', edge.__edge_name__))
         return self
 
-    def bothE(self, edge_class) -> 'Graph':
+    def bothE(self, edge: OEdge) -> 'Graph':
         self.__close_vertex()
-        self.__sql.append(".%s(%s)" % ('both', edge_class))
+        self.__sql.append(".%s(%s)" % ('both', edge))
         return self
 
-    def Not(self) -> 'Graph':
+    def not_(self) -> 'Graph':
         self.__close_vertex()
-        self.__sql.append("NOT")
+        self.__sql.append(", NOT")
         return self
 
-    def return_result(self, clause: str, distinct=False, alias=None) -> 'Graph':
+    def return_(self, clause: str, distinct=False, alias=None) -> 'Graph':
         self.__close_vertex()
 
         return_str = "RETURN"

@@ -77,6 +77,8 @@ class ODirection(Enum):
 
 
 class OVertex(OElement):
+    ___vertex_name__ = None
+
     depth = RawType(name='$depth')
 
     def get_edges(self, direction: ODirection) -> List['OEdge']:
@@ -87,6 +89,7 @@ class OVertex(OElement):
 
 
 class OEdge(OElement):
+    __edge_name__ = None
 
     def __init__(self, frm_vertex, to_vertex):
         super().__init__()

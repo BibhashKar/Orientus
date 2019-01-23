@@ -1,5 +1,5 @@
 from orientus.core.datatypes import OString
-from orientus.core.domain import OVertex
+from orientus.core.domain import OVertex, OEdge
 from orientus.core.session import Graph
 
 
@@ -7,19 +7,26 @@ from orientus.core.session import Graph
 #     with Session(db) as session:
 #         session.match() \
 class Token(OVertex):
+    ___vertex_name__ = 'Token'
     text = OString(name='text', mandatory=True)
     new_text = OString(name='new_text', mandatory=True)
 
 
+class PreviousTokenEdge(OEdge):
+    __edge_name__ = 'PreviousTokenEdge'
+    pass
+
+
 if __name__ == '__main__':
     Graph().match() \
-        .vertex(class_=Token, alias='token') \
-        .where((Token.text == 'the') | (Token.text == 'THE')) \
-        .outE('PreviousTokenEdge') \
-        .vertex(class_=Token, alias='ngram') \
-        .where(Token.depth == 1) \
-        .when((Token.depth < 1) & (Token.text == 'the')) \
-        .return_result('ngram',) \
+        .vertex(vertex=Token, alias='token').where((Token.text == 'the') | (Token.text == 'THE')) \
+        .outE(PreviousTokenEdge) \
+        .vertex(vertex=Token, alias='ngram').where(Token.depth == 1).while_((Token.depth < 1) & (Token.text == 'the')) \
+        .not_() \
+        .vertex(vertex=Token, alias='tkn') \
+        .outE(PreviousTokenEdge) \
+        .vertex(vertex=Token, alias='tkn_') \
+        .return_('$matches', ) \
         .group_by('token') \
         .order_by('token') \
         .skip(number=10) \
