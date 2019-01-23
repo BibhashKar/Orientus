@@ -199,8 +199,7 @@ class Graph(GraphFunction):
 
     def done(self):
         self.__close_vertex()
-        from pprint import pprint
-        print("MATCH\n" + "\n".join(self.__sql))
+        return "MATCH\n" + "\n".join(self.__sql)
 
     def __close_vertex(self):
         if self.__vertex_on:
