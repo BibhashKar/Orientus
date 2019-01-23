@@ -5,12 +5,10 @@ class Clause:
     def __repr__(self):
         return self.expression
 
-    def and_(self, other):
-        print('in and clause')
+    def __and__(self, other):
         return Clause("(%s AND %s)" % (self.expression, other.expression))
 
-    def or_(self, other):
-        print('in and clause')
+    def __or__(self, other):
         return Clause("(%s OR %s)" % (self.expression, other.expression))
 
 

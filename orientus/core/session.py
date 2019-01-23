@@ -123,15 +123,12 @@ class Graph(GraphFunction):
     def match(self):
         return self
 
-    def vertex(self, alias, class_: ClassVar) -> 'Graph':
+    def vertex(self, class_: ClassVar, alias: str) -> 'Graph':
         self.__vertex_on = True
-        self.__vertex_dict = {'as': alias}
-        if class_:
-            self.__vertex_dict['class'] = class_.__name__
+        self.__vertex_dict = {'class': class_.__name__, 'as': alias}
         return self
 
     def where(self, clause: Clause) -> 'Graph':
-        print(clause)
         if self.__vertex_on:
             self.__vertex_dict['where'] = str(clause)
         return self

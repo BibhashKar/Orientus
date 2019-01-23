@@ -14,12 +14,12 @@ class Token(OVertex):
 if __name__ == '__main__':
     Graph().match() \
         .vertex(class_=Token, alias='token') \
-        .where((Token.text == 'the').or_(Token.text == 'THE')) \
+        .where((Token.text == 'the') | (Token.text == 'THE')) \
         .outE('PreviousTokenEdge') \
         .vertex(class_=Token, alias='ngram') \
         .where(Token.depth == 1) \
-        .when((Token.depth < 1).and_(Token.text == 'the')) \
-        .return_result('ngram', ) \
+        .when((Token.depth < 1) & (Token.text == 'the')) \
+        .return_result('ngram',) \
         .group_by('token') \
         .order_by('token') \
         .skip(number=10) \
