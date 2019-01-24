@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from copy import copy
-from typing import List, ClassVar
+from typing import List, Type
 
 from pyorient import OrientRecord, PyOrientCommandException
 
@@ -120,10 +119,7 @@ class Graph(GraphFunction):
         self.__vertex_on = False
         self.__vertex_dict = {}
 
-    def match(self):
-        return self
-
-    def vertex(self, vertex: OVertex, alias: str) -> 'Graph':
+    def vertex(self, vertex: Type[OVertex], alias: str) -> 'Graph':
         self.__vertex_on = True
         self.__vertex_dict = {'class': vertex.___vertex_name__, 'as': alias}
         return self
@@ -138,17 +134,17 @@ class Graph(GraphFunction):
             self.__vertex_dict['while'] = str(clause)
         return self
 
-    def outE(self, edge: OEdge) -> 'Graph':
+    def outE(self, edge: Type[OEdge]) -> 'Graph':
         self.__close_vertex()
         self.__sql.append(".%s(%s)" % ("out", edge.__edge_name__))
         return self
 
-    def inE(self, edge: OEdge) -> 'Graph':
+    def inE(self, edge: Type[OEdge]) -> 'Graph':
         self.__close_vertex()
         self.__sql.append(".%s(%s)" % ('in', edge.__edge_name__))
         return self
 
-    def bothE(self, edge: OEdge) -> 'Graph':
+    def bothE(self, edge: Type[OEdge]) -> 'Graph':
         self.__close_vertex()
         self.__sql.append(".%s(%s)" % ('both', edge))
         return self
@@ -197,7 +193,7 @@ class Graph(GraphFunction):
         self.__sql.append("LIMIT %s" % (number))
         return self
 
-    def done(self):
+    def done(self) -> str:
         self.__close_vertex()
         return "MATCH\n" + "\n".join(self.__sql)
 
@@ -239,6 +235,8 @@ class Session(AbstractSession):
 
         except PyOrientCommandException:
             return []
+
+        # TODO: return type should be OrientRecord or our custom object
 
         return results
 
@@ -289,8 +287,11 @@ class Session(AbstractSession):
     def _get_id(self, record: ORecord) -> str:
         return record._rid
 
-    def match(self) -> Graph:
-        return Graph()
+    def match(self, graph: Graph) -> List[OrientRecord]:
+        return self.command(graph.done())
+
+
+#     TODO: all operations are returning TRUE...need to return false when opration became unsuccessful
 
 
 class BatchQueryBuilder:

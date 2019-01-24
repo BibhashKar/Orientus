@@ -1,6 +1,8 @@
 from orientus.core.datatypes import OString
+from orientus.core.db import OrientUsDB
 from orientus.core.domain import OVertex, OEdge
 from orientus.core.session import Graph
+from orientus.core.session import Session
 
 
 class Token(OVertex):
@@ -14,22 +16,22 @@ class PreviousTokenEdge(OEdge):
     pass
 
 
+graph_ = Graph() \
+    .vertex(vertex=Token, alias='token').where((Token.text == 'the') | (Token.text == 'THE')) \
+    .outE(PreviousTokenEdge) \
+    .vertex(vertex=Token, alias='ngram').where(Token.depth == 1).while_((Token.depth < 1) & (Token.text == 'the')) \
+    .not_().vertex(vertex=Token, alias='token') \
+    .outE(PreviousTokenEdge) \
+    .vertex(vertex=Token, alias='ngram') \
+    .return_('$matches', ) \
+    .group_by('token') \
+    .order_by('token') \
+    .skip(number=10) \
+    .limit(number=100)
+
+
 def match_query_test():
-    result = Graph().match() \
-        .vertex(vertex=Token, alias='token').where((Token.text == 'the') | (Token.text == 'THE')) \
-        .outE(PreviousTokenEdge) \
-        .vertex(vertex=Token, alias='ngram').where(Token.depth == 1).while_(
-        (Token.depth < 1) & (Token.text == 'the')) \
-        .not_() \
-        .vertex(vertex=Token, alias='token') \
-        .outE(PreviousTokenEdge) \
-        .vertex(vertex=Token, alias='ngram') \
-        .return_('$matches', ) \
-        .group_by('token') \
-        .order_by('token') \
-        .skip(number=10) \
-        .limit(number=100) \
-        .done() \
+    result = graph_.done() \
         .replace("\n", " ")
 
     expected_result = " ".join(["MATCH",
@@ -49,7 +51,11 @@ def match_query_test():
     assert result == expected_result
 
 
-match_query_test()
-
 if __name__ == '__main__':
-    pass
+    match_query_test()
+
+    db_name = 'test'
+
+    with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
+        with Session(db) as session:
+            session.match(graph_)
