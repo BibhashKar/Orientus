@@ -30,7 +30,7 @@ class AbstractSession(ABC):
         pass
 
     @abstractmethod
-    def query(self, query: str, limit: int = -1) -> str:
+    def raw_query(self, query: str, limit: int = -1) -> str:
         if limit > -1 and ' limit ' not in query:
             query = '%s limit %s' % (query, limit)
 
@@ -298,8 +298,8 @@ class Session(AbstractSession):
 
         return results
 
-    def query(self, query: str, limit: int = -1) -> List[OrientRecord]:
-        query = super().query(query, limit)
+    def raw_query(self, query: str, limit: int = -1) -> List[OrientRecord]:
+        query = super().raw_query(query, limit)
 
         results = self.command(query)
 
@@ -416,8 +416,8 @@ class BatchSession(AbstractSession):
         if self.debug: print('Command:', statement)
         self.query_builder.add(statement, record)
 
-    def query(self, query: str, limit: int = -1) -> bool:
-        query = super().query(query, limit)
+    def raw_query(self, query: str, limit: int = -1) -> bool:
+        query = super().raw_query(query, limit)
 
         print(query)
         self.query_builder.add(query)
