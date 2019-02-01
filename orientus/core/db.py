@@ -97,6 +97,7 @@ class OrientUsDB(Thread):
         try:
             connection = self.connection_pool.popleft()
         except IndexError:
+            # TODO: give more meaningful error 'IndexError: pop from an empty deque' when database isn't started
             self.create_connection()
             connection = self.connection_pool.popleft()
 

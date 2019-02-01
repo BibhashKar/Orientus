@@ -1,10 +1,11 @@
+import inspect
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import List, Type
 
 from pyorient import OrientRecord, PyOrientCommandException
 
-from orientus.core.datatypes import Clause
+from orientus.core.datatypes import Clause, RawType
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 
@@ -36,20 +37,77 @@ class AbstractSession(ABC):
         return query
 
     def create_class(self, clz) -> bool:
+
+        # TODO: clasees now only extends V, E not custom vertex classes (e.g. CREATE CLASS Car EXTENDS Vehicle)
+        # for help https://orientdb.com/docs/2.1.x/SQL-Create-Class.html
+
         if issubclass(clz, OVertex):
-            clz_create_cmd = 'create class %s if not exists extends V' % clz.__name__
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS V' % clz.__name__
         elif issubclass(clz, OEdge):
-            clz_create_cmd = 'create class %s if not exists extends E' % clz.__name__
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS E' % clz.__name__
         else:
-            clz_create_cmd = 'create class %s if not exists' % clz.__name__
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS' % clz.__name__
 
         if self.debug: print(clz_create_cmd)
 
-        self.connection.command(clz_create_cmd)
+        self.command(clz_create_cmd)
+
+        attributes = inspect.getmembers(clz, lambda a: not (inspect.isroutine(a)))
+        clz_attrs = [a for a in attributes if not (a[0].startswith('__') and a[0].endswith('__'))]
+
+        unique_indices = []
+
+        for (name, datatype) in clz_attrs:
+            if datatype.__class__ == RawType:
+                continue
+
+            if isinstance(datatype, RawType):
+
+                prop_cmd = "CREATE PROPERTY %s.%s %s" % (
+                    clz.__name__,
+                    datatype.name,
+                    datatype.__class__.__name__[1:].upper()
+                )
+
+                constraints = []
+
+                # TODO: add all types of constraints schema for ORecord, OVertex, OEdge
+                # for help https://orientdb.com/docs/2.2.x/SQL-Create-Property.html, https://orientdb.com/docs/3.0.x/gettingstarted/Tutorial-Classes.html
+
+                if datatype.min is not None:
+                    constraints.append("MIN %s" % (datatype.min))
+
+                if datatype.max is not None:
+                    constraints.append("MAX %s" % (datatype.max))
+
+                if datatype.mandatory:
+                    constraints.append("MANDATORY TRUE")
+
+                if datatype.unique:
+                    unique_indices.append("%s.%s" % (clz.__name__, datatype.name))
+
+                if len(constraints) > 0:
+                    prop_cmd = "%s (%s)" % (prop_cmd, ",".join(constraints))
+
+                if self.debug:
+                    print(prop_cmd)
+
+                self.command(prop_cmd)
+
+        for index in unique_indices:
+            index_cmd = "CREATE INDEX %s UNIQUE" % (index)
+
+            if self.debug:
+                print(index_cmd)
+
+            self.command(index_cmd)
+
+        if self.debug:
+            print()
 
         return True
 
-    def add_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
+    def __save_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
         frm_id = self._get_id(frm)
         to_id = self._get_id(to)
 
@@ -69,7 +127,7 @@ class AbstractSession(ABC):
         clz_name = record.class_name()
 
         if isinstance(record, OEdge):
-            return self.add_edge(record._from_vertex, record._to_vertex, record)
+            return self.__save_edge(record._from_vertex, record._to_vertex, record)
 
         insert_cmd = "insert into %s set " % (clz_name) + self._fields_to_str(record)
 

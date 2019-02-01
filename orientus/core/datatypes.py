@@ -58,6 +58,10 @@ class RawType:
             return other
 
 
+class OPrimaryKey(RawType):
+    pass
+
+
 class OBoolean(RawType):
     pass
 
