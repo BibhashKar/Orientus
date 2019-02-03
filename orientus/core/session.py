@@ -43,11 +43,14 @@ class AbstractSession(ABC):
         # for help https://orientdb.com/docs/2.1.x/SQL-Create-Class.html
 
         if issubclass(clz, OVertex):
-            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS V' % clz.__name__
+            assert clz.___vertex_name__ is not None
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS V' % clz.element_name()
         elif issubclass(clz, OEdge):
-            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS E' % clz.__name__
+            assert clz.__edge_name__ is not None
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS EXTENDS E' % clz.element_name()
         else:
-            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS' % clz.__name__
+            assert clz.__record_name__ is not None
+            clz_create_cmd = 'CREATE CLASS %s IF NOT EXISTS' % clz.element_name()
 
         if self.debug: print(clz_create_cmd)
 
@@ -65,7 +68,7 @@ class AbstractSession(ABC):
             if isinstance(datatype, RawType):
 
                 prop_cmd = "CREATE PROPERTY %s.%s %s" % (
-                    clz.__name__,
+                    clz.element_name(),
                     datatype.name,
                     datatype.__class__.__name__[1:].upper()
                 )
@@ -85,7 +88,7 @@ class AbstractSession(ABC):
                     constraints.append("MANDATORY TRUE")
 
                 if datatype.unique:
-                    unique_indices.append("%s.%s" % (clz.__name__, datatype.name))
+                    unique_indices.append("%s.%s" % (clz.element_name(), datatype.name))
 
                 if len(constraints) > 0:
                     prop_cmd = "%s (%s)" % (prop_cmd, ",".join(constraints))
@@ -115,7 +118,7 @@ class AbstractSession(ABC):
         assert bool(frm_id)
         assert bool(to_id)
 
-        create_cmd = "create edge %s from %s to %s" % (edge.class_name(), frm_id, to_id)
+        create_cmd = "create edge %s from %s to %s" % (edge.element_name(), frm_id, to_id)
         value_str = self._fields_to_str(edge)
         if value_str:
             create_cmd += ' set ' + value_str
@@ -125,7 +128,7 @@ class AbstractSession(ABC):
         return True
 
     def save(self, record: ORecord) -> bool:
-        clz_name = record.class_name()
+        clz_name = record.element_name()
 
         if isinstance(record, OEdge):
             return self.__save_edge(record._from_vertex, record._to_vertex, record)
@@ -150,12 +153,12 @@ class AbstractSession(ABC):
             values.append("%s = %s" % (field, modified_val))
         return (' %s ' % delimiter).join(values)
 
-    def _data_to_ORecord(self, data: OrientRecord, cls) -> ORecord:
-        obj = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
-        obj._rid = data._rid
-        obj._version = data._version
-
-        return obj
+    # def _data_to_ORecord(self, data: OrientRecord, cls) -> ORecord:
+    #     obj = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
+    #     obj._rid = data._rid
+    #     obj._version = data._version
+    #
+    #     return obj
 
 
 class GraphFunction:
@@ -444,7 +447,7 @@ class Session(AbstractSession):
 
     def update(self, record: ORecord, upsert=True) -> bool:
         update_cmd = "update %s set %s %s where %s" % (
-            record.class_name(),
+            record.element_name(),
             self._fields_to_str(record),
             'upsert' if upsert else '',
             self._fields_to_str(record, delimiter='AND')
@@ -456,7 +459,7 @@ class Session(AbstractSession):
 
     def update_by_id(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s where @rid = '%s'" % (
-            record.class_name(),
+            record.element_name(),
             self._fields_to_str(record),
             self._get_id(record)
         )
@@ -473,7 +476,7 @@ class Session(AbstractSession):
         elif isinstance(record, OEdge):
             delete_cmd = "delete edge %s" % id
         else:
-            delete_cmd = "delete from %s where @rid = %s" % (record.class_name(), id)
+            delete_cmd = "delete from %s where @rid = %s" % (record.element_name(), id)
 
         self.command(delete_cmd, record)
 
@@ -504,7 +507,7 @@ class BatchQueryBuilder:
             self.query_dict['qry' + idx_str] = statement
         else:
             if record._batch_id is None:
-                record._batch_id = record.class_name() + idx_str
+                record._batch_id = record.element_name() + idx_str
                 self.query_dict[record._batch_id] = statement
 
                 self.record_list.append(record)
@@ -538,8 +541,8 @@ class BatchSession(AbstractSession):
 
         record_classes = {}
         for record in self.query_builder.record_list:
-            if not isinstance(record, OEdge) and record.class_name() not in record_classes.keys():
-                record_classes[record.class_name()] = record
+            if not isinstance(record, OEdge) and record.element_name() not in record_classes.keys():
+                record_classes[record.element_name()] = record
 
         # print(record_classes)
         batch_query = self.query_builder.finalize()

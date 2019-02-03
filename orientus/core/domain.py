@@ -19,6 +19,7 @@ class ORID:
 
 
 class ORecord:
+    __record_name__ = None
 
     def __init__(self, rid='', version=''):
         self._rid = rid
@@ -37,8 +38,9 @@ class ORecord:
 
         return int(cluster) > 0 and int(position) >= 0
 
-    def class_name(self) -> str:
-        return self.__class__.__name__
+    @classmethod
+    def element_name(cls) -> str:
+        return cls.__record_name__
 
     def get_identity(self) -> ORID:
         pass
@@ -77,9 +79,13 @@ class ODirection(Enum):
 
 
 class OVertex(OElement):
-    ___vertex_name__ = 'V'
+    ___vertex_name__ = None
 
     depth = RawType(name='$depth')
+
+    @classmethod
+    def element_name(cls) -> str:
+        return cls.___vertex_name__
 
     def get_edges(self, direction: ODirection) -> List['OEdge']:
         pass
@@ -99,6 +105,10 @@ class OEdge(OElement):
     # def connect(self, frm: OVertex, to: OVertex):
     #     self._from_vertex = frm
     #     self._to_vertex = to
+
+    @classmethod
+    def element_name(cls) -> str:
+        return cls.__edge_name__
 
     def get_from(self) -> OVertex:
         pass
