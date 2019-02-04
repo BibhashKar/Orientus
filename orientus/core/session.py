@@ -5,6 +5,7 @@ from typing import List
 
 from pyorient import OrientRecord, PyOrientCommandException
 
+from orientus.core import utils
 from orientus.core.datatypes import RawType
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
@@ -162,13 +163,6 @@ class AbstractSession(ABC):
 
         return (' %s ' % delimiter).join(values)
 
-    # def _data_to_ORecord(self, data: OrientRecord, cls) -> ORecord:
-    #     obj = type(cls.__name__, (cls,), data.__dict__['_OrientRecord__o_storage'])
-    #     obj._rid = data._rid
-    #     obj._version = data._version
-    #
-    #     return obj
-
 
 class Session(AbstractSession):
 
@@ -199,8 +193,30 @@ class Session(AbstractSession):
 
         return results
 
-    def query(self, qry: Query) -> List[OrientRecord]:
-        return self.raw_query(qry._done())
+    def query(self, qry: Query) -> List:
+        results: List[OrientRecord] = self.raw_query(qry._done())
+        final_results = []
+
+        _cls = qry.record_cls
+
+        domain_variables = utils.domain_variables(_cls)
+        column_name_vs_var_name = {datatype.name: name for (name, datatype) in domain_variables}
+        print(column_name_vs_var_name)
+
+        for result in results:
+            # TODO: for this __init__() Domain classes have to provide default params in constructor method
+            instance = _cls()
+
+            instance._version = result._version
+            instance._rid = result._rid
+
+            for key, value in result.oRecordData.items():
+                if column_name_vs_var_name.get(key) is not None:
+                    setattr(instance, column_name_vs_var_name.get(key), value)
+
+            final_results.append(instance)
+
+        return final_results
 
     def update(self, record: ORecord, upsert=True) -> bool:
         update_cmd = "update %s set %s %s where %s" % (
