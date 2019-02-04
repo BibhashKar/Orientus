@@ -1,7 +1,7 @@
 import time
 from collections import deque
 from threading import Thread
-from typing import Deque
+from typing import Deque, Mapping
 
 import pyorient
 from pyorient import OrientSocket, PyOrientWrongProtocolVersionException, OrientDB, OrientSerialization
@@ -40,15 +40,15 @@ class OrientUs(OrientDB):
 
 class OrientUsDB(Thread):
 
-    def __init__(self, db_name: str, username: str, password: str,
-                 host: str = 'localhost', port: int = 2424, debug=False):
+    def __init__(self, props: Mapping, debug=False):
         super().__init__()
 
-        self.host = host
-        self.port = port
-        self.db_name = db_name
-        self.username = username
-        self.password = password
+        self.host = props['host']
+        self.port = props['port']
+        self.db_name = props['db_name']
+        self.username = props['username']
+        self.password = props['password']
+
         self.debug = debug
 
         self.connection_pool: Deque[OrientUs] = deque(maxlen=10)

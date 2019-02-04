@@ -6,7 +6,7 @@ from typing import List, Type
 
 from pyorient import OrientRecord, PyOrientCommandException
 
-from orientus.core.datatypes import Clause, RawType
+from orientus.core.datatypes import Clause, RawType, OString
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 
@@ -303,6 +303,7 @@ class Query:
         "Constructor for query"
         self.sql = []
 
+        self.record_cls = record_cls
         if record_cls is not None:
             self.select().from_(record_cls)
 
@@ -319,14 +320,27 @@ class Query:
         return self
 
     def from_(self, record_cls: Type[OVertex]):
-        _sql = "FROM %s" % (record_cls.___vertex_name__)
+        _sql = "FROM %s" % (record_cls.element_name())
 
         self.sql.append(_sql)
 
         return self
 
-    def where(self, clause: Clause):
-        _sql = "WHERE %s" % (str(clause))
+    def where(self, clause):  # TODO: clause accepts OString and Clause type as param
+
+        if isinstance(clause, OString):
+            search_term = clause.name
+        else:
+            search_term = str(clause)
+
+        _sql = "WHERE %s" % (search_term)
+
+        self.sql.append(_sql)
+
+        return self
+
+    def like(self, match: str):
+        _sql = "LIKE '%s'" % (match)
 
         self.sql.append(_sql)
 
