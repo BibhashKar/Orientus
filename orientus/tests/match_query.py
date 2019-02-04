@@ -1,7 +1,9 @@
+from typing import Mapping
+
 from orientus.core.datatypes import OString
 from orientus.core.db import OrientUsDB
 from orientus.core.domain import OVertex, OEdge
-from orientus.core.session import Graph
+from orientus.core.match import Graph
 from orientus.core.session import Session
 
 
@@ -50,12 +52,19 @@ def match_query_test():
 
     assert result == expected_result
 
+def get_db_props() -> Mapping:
+    return {'host': 'localhost',
+            'port': 2424,
+            'db_name': 'test',
+            'username': 'root',
+            'password': 'admin'}
+
 
 if __name__ == '__main__':
     match_query_test()
 
     db_name = 'test'
 
-    with OrientUsDB(db_name, 'root', 'admin', debug=True) as db:
+    with OrientUsDB(get_db_props(), debug=True) as db:
         with Session(db) as session:
             session.match(graph_)

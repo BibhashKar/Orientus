@@ -14,7 +14,7 @@ SELECT [ <Projections> ] [ FROM <Target> [ LET <Assignment>* ] ]
     [ NOCACHE ]
 """
 
-from orientus.core.session import Order, Query
+from orientus.core.query import Order, Query
 from orientus.tests.data import Token
 
 if __name__ == '__main__':
