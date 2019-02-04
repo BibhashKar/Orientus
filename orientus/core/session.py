@@ -146,12 +146,20 @@ class AbstractSession(ABC):
 
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
-        for field, value in record.__dict__.items():
+        items = record.__dict__.items()
+
+        if len(items) == 0:
+            raise ValueError(record.__class__.__name__ + " has no properties.")
+
+        for field, value in items:
             if field in ['_batch_id', '_rid', '_version', '_from_vertex',
                          '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
+
             modified_val = "'%s'" % value.replace("'", "\\'") if type(value) == str else value
+
             values.append("%s = %s" % (field, modified_val))
+
         return (' %s ' % delimiter).join(values)
 
     # def _data_to_ORecord(self, data: OrientRecord, cls) -> ORecord:
