@@ -37,10 +37,10 @@ def to_datatype_obj(class_type: Type[ORecord], records: List[OrientRecord]) -> L
     domain_variables = get_class_datatypes(class_type)
     column_name_vs_var_name = {datatype.name: name for (name, datatype) in domain_variables}
 
-    print(column_name_vs_var_name)
+    # print(column_name_vs_var_name)
 
     for record in records:
-        """for this __init__(), Domain classes have to provide default params in constructor method"""
+        """for this __init__(), Domain classes have to provide default/optional params in constructor method"""
         instance = class_type()
 
         instance._version = record._version

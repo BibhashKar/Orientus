@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from typing import List
 
-from pyorient import OrientRecord, PyOrientCommandException
+from pyorient import OrientRecord, PyOrientCommandException, PyOrientORecordDuplicatedException
 
 from orientus.core.datatypes import RawType
 from orientus.core.db import OrientUsDB
@@ -179,7 +179,8 @@ class Session(AbstractSession):
 
                 if self.debug: print('rid', results[0]._rid)
 
-        except PyOrientCommandException:
+        except PyOrientCommandException as e:
+            print('error occured during executing command', e)
             return []
 
         # TODO: return type should be OrientRecord or our custom object
@@ -196,6 +197,20 @@ class Session(AbstractSession):
     def query(self, qry: Query) -> List:
         results = self.raw_query(qry._done())
         return to_datatype_obj(qry.record_cls, results)
+
+    def save_or_fetch(self, record: ORecord) -> ORecord:
+        try:
+            self.save(record)
+            return record
+        except PyOrientORecordDuplicatedException:
+            # print('Duplicate Exception in save_or_fetch()')
+            # print('record', record)
+            result = self.command(
+                "SELECT FROM %s WHERE %s" % (record.element_name(), self._fields_to_str(record, delimiter='AND')))
+            cast_result = to_datatype_obj(record.__class__, result)
+            # print('result', result)
+            # print('result rid', cast_result[0]._rid)
+            return cast_result[0]
 
     def update(self, record: ORecord, upsert=True) -> bool:
         update_cmd = "update %s set %s %s where %s" % (
@@ -311,7 +326,7 @@ class BatchSession(AbstractSession):
     def raw_query(self, query: str, limit: int = -1) -> bool:
         query = super().raw_query(query, limit)
 
-        print(query)
+        if self.debug: print(query)
         self.query_builder.add(query)
 
         return True
