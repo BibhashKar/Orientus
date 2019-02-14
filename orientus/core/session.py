@@ -113,7 +113,7 @@ class AbstractSession(ABC):
 
         return True
 
-    def __save_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> bool:
+    def __save_edge(self, frm: OVertex, to: OVertex, edge: OEdge) -> OEdge:
         frm_id = self._get_id(frm)
         to_id = self._get_id(to)
 
@@ -127,9 +127,9 @@ class AbstractSession(ABC):
 
         self.command(create_cmd, edge)
 
-        return True
+        return edge
 
-    def save(self, record: ORecord) -> bool:
+    def save(self, record: ORecord) -> ORecord:
         clz_name = record.element_name()
 
         if isinstance(record, OEdge):
@@ -139,7 +139,7 @@ class AbstractSession(ABC):
 
         self.command(insert_cmd, record)
 
-        return True
+        return record
 
     @abstractmethod
     def _get_id(self, record: ORecord) -> str:
@@ -198,7 +198,7 @@ class Session(AbstractSession):
         results = self.raw_query(qry._done())
         return to_datatype_obj(qry.record_cls, results)
 
-    def save_or_fetch(self, record: ORecord) -> ORecord:
+    def save_if_not_exists(self, record: ORecord) -> ORecord:
         try:
             self.save(record)
             return record
