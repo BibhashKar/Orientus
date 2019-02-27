@@ -166,14 +166,16 @@ class AbstractSession(ABC):
 
 class Session(AbstractSession):
 
-    def command(self, statement, record: ORecord = None) -> List[OrientRecord]:
+    def command(self, statement, record: ORecord = None, is_update=False) -> List[OrientRecord]:
         if self.debug: print('Command:', statement)
         try:
             results = self.connection.command(statement)
 
-            if self.debug: print('Result Count:', len(results))
+            if self.debug:
+                print('Result Count:', len(results))
+                print()
 
-            if record is not None and len(results) > 0:
+            if record is not None and len(results) > 0 and not is_update:
                 record._rid = results[0]._rid
                 record._version = results[0]._version
 
@@ -203,26 +205,26 @@ class Session(AbstractSession):
             self.save(record)
             return record
         except PyOrientORecordDuplicatedException:
-            # print('Duplicate Exception in save_or_fetch()')
-            # print('record', record)
             result = self.command(
-                "SELECT FROM %s WHERE %s" % (record.element_name(), self._fields_to_str(record, delimiter='AND')))
+                "SELECT FROM %s WHERE %s" %
+                (record.element_name(), self._fields_to_str(record, delimiter='AND'))
+            )
             cast_result = to_datatype_obj(record.__class__, result)
-            # print('result', result)
-            # print('result rid', cast_result[0]._rid)
             return cast_result[0]
 
-    def update(self, record: ORecord, upsert=True) -> bool:
-        update_cmd = "update %s set %s %s where %s" % (
+    def update(self, record: ORecord) -> bool:
+        update_cmd = "update %s set %s where @rid = %s" % (
             record.element_name(),
             self._fields_to_str(record),
-            'upsert' if upsert else '',
-            self._fields_to_str(record, delimiter='AND')
+            record._rid
+            # self._fields_to_str(record, delimiter='AND')
         )
 
-        self.command(update_cmd, record)
+        self.command(update_cmd, record, is_update=True)
 
         return True
+
+    # TODO: implement upsert or not?
 
     def update_by_id(self, record: ORecord) -> bool:
         update_cmd = "update %s set %s where @rid = '%s'" % (
