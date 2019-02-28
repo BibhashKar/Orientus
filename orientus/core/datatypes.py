@@ -32,9 +32,15 @@ class RawType:
         self.regex = regex
 
     def __eq__(self, other):
+        if other is None:
+            return Clause("%s IS %s" % (self.name, self.__get_other_value(other)))
+
         return Clause("%s = %s" % (self.name, self.__get_other_value(other)))
 
     def __ne__(self, other):
+        if other is None:
+            return Clause("%s IS NOT %s" % (self.name, self.__get_other_value(other)))
+
         return Clause("%s != %s" % (self.name, self.__get_other_value(other)))
 
     def __lt__(self, other):
@@ -50,6 +56,8 @@ class RawType:
         return Clause("%s >= %s" % (self.name, self.__get_other_value(other)))
 
     def __get_other_value(self, other):
+        if other is None:
+            return 'NULL'
         if isinstance(other, str):
             return "'%s'" % (other)
         if isinstance(other, RawType):
