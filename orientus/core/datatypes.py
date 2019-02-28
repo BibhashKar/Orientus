@@ -99,7 +99,12 @@ class ODatetime(RawType):
 
 
 class OString(RawType):
-    pass
+
+    def trim(self):
+        return RawType('%s.%s' % (self.name, 'trim()'))
+
+
+#     TODO: implement other string methods of orientdb
 
 
 class OBinary(RawType):
