@@ -10,7 +10,7 @@ from orientus.core.db import OrientUsDB
 from orientus.core.domain import ORecord, OVertex, OEdge
 from orientus.core.match import Graph
 from orientus.core.query import Query
-from orientus.core.utils import to_datatype_obj
+from orientus.core.utils import to_datatype_obj, get_field_names
 
 
 class AbstractSession(ABC):
@@ -147,7 +147,11 @@ class AbstractSession(ABC):
 
     def _fields_to_str(self, record, delimiter=',') -> str:
         values = []
-        items = record.__dict__.items()
+
+        items = [
+            (field, value) for field, value in record.__dict__.items()
+            if field in get_field_names(record.__class__)
+        ]
 
         if len(items) == 0:
             raise ValueError(record.__class__.__name__ + " has no properties.")
@@ -157,7 +161,7 @@ class AbstractSession(ABC):
                          '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
 
-            modified_val = "'%s'" % value.replace("'", "\\'") if type(value) == str else value
+            modified_val = r"'%s'" % value.replace("'", "\\'") if type(value) == str else value
 
             values.append("%s = %s" % (field, modified_val))
 

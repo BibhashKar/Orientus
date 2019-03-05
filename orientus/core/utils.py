@@ -25,6 +25,11 @@ def get_class_datatypes(class_type: Type[ORecord], exclude_rawtypes=True):
     return class_datatypes
 
 
+def get_field_names(class_type: Type[ORecord]):
+    """Returns Domain class field names those class types are Rawtype or its subclasses"""
+    return [field for field, value in get_class_datatypes(class_type)]
+
+
 def to_datatype_obj(class_type: Type[ORecord], records: List[OrientRecord]) -> List:
     """Converts OrientRecord list to Datatype object list
 
