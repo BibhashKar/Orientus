@@ -161,7 +161,8 @@ class AbstractSession(ABC):
                          '_to_vertex']:  # TODO: business domain object can have these field name?
                 continue
 
-            modified_val = r"'%s'" % value.replace("'", "\\'") if type(value) == str else value
+            # used repr(str) to escape strings (for more: https://stackoverflow.com/a/13676745)
+            modified_val = repr(value) if type(value) == str else value
 
             values.append("%s = %s" % (field, modified_val))
 
