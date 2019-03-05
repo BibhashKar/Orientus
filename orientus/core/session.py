@@ -30,6 +30,9 @@ class AbstractSession(ABC):
 
     @abstractmethod
     def command(self, statement: str, record: ORecord = None):
+        # TODO: VERY VERY IMPORTANT: implement prepared statement feature (parameterized query)
+        # links: http://orientdb.com/docs/3.0.x/tuning/Performance-Tuning.html#use-parameters-instead-of-hard-wired-values,
+        #        https://orientdb.com/docs/3.0.x/java/Java-Query-API.html
         pass
 
     @abstractmethod
